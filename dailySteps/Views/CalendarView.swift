@@ -17,34 +17,13 @@ struct ContentView: View {
                                Date().startOfCalendarWithPrefixDays as CVarArg,
                                Date().endOfMonth as CVarArg))
     private var days: FetchedResults<Day>
-    
-    @StateObject private var healthManager = HealthManager()
+  
     
     //create an array that holds the days of the week
     let daysOfWeek = ["S","M","T","W","T","F","S"]
     
     var body: some View {
         NavigationView {
-            
-            VStack {
-                Text("Steps today")
-                    .font(.largeTitle)
-                    .bold()
-                Text("\(Int(healthManager.steps)) steps")
-                                .font(.title)
-
-                if healthManager.steps == 1000 {
-                    Text("Goal Reached")
-                        .foregroundStyle(.green)
-                } else {
-                    Text( "Keep going")
-                        .foregroundStyle(.orange)
-                }
-
-            }
-            
-            
-            
             //header
             VStack {
                 
