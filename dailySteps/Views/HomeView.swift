@@ -17,7 +17,7 @@ struct HomeView: View {
             Text("\(Int(mainViewModel.steps)) steps")
                             .font(.title)
 
-            if mainViewModel.steps >= 1000 {
+            if mainViewModel.steps >= 10000 {
                 Text("Goal Reached")
                     .foregroundStyle(.green)
             } else {

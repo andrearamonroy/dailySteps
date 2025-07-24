@@ -17,12 +17,13 @@ class HealthManager: ObservableObject {
     
     init() {
         let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
-        
         Task {
             do {
                 if HKHealthStore.isHealthDataAvailable() {
                     try await healthStore.requestAuthorization(toShare: [], read: [stepType])
                     startStepQuery()
+                    enableBackgroundDelivery()
+                    observeStepChanges()
                 }
             } catch {
                 print("steps: HealthKit authorization failed: \(error)")
@@ -73,6 +74,8 @@ class HealthManager: ObservableObject {
 
         healthStore.execute(query)
     }
+    
+    
     
     private func saveGoalReachedIfNeeded(){
         let context = PersistenceController.shared.container.viewContext
@@ -126,5 +129,33 @@ class HealthManager: ObservableObject {
         }catch{
             print("steps : Error checking yesterday’s goal: \(error)")
         }
+        
+        
+    }
+    
+    private func enableBackgroundDelivery() {
+        let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
+            if success {
+                print("steps: background delivery enabled")
+            } else {
+                print("steps: failed to enable background delivery: \(String(describing: error))")
+            }
+        }
+    }
+
+    private func observeStepChanges() {
+        let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        let observerQuery = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
+            if let error = error {
+                print("steps: observer error \(error)")
+                return
+            }
+
+            print("steps: observer triggered")
+            self?.startStepQuery()
+        }
+
+        healthStore.execute(observerQuery)
     }
 }

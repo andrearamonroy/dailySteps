@@ -22,6 +22,7 @@ class MainViewModel : ObservableObject {
         healthManager.$steps
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] newSteps in
+                    print("Steps updated:", newSteps)
                     self?.steps = newSteps
                     self?.checkStepGoalAndNotify(steps: newSteps)
                 }
@@ -33,7 +34,7 @@ class MainViewModel : ObservableObject {
     private func checkStepGoalAndNotify(steps: Double) {
         let today = Date().startOfDay
         // Only notify once per day
-        guard steps >= 10_000 && notificationSentForDay < today else { return }
+        guard steps >= 10_949 && notificationSentForDay < today else { return }
         
         sendNotification()
         notificationSentForDay = today
@@ -53,11 +54,11 @@ class MainViewModel : ObservableObject {
         content.title = "Congrats!"
         content.body = "You've reached 10,000 steps today"
         content.sound = .default
-        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
             content: content,
-            trigger: nil)
+            trigger: trigger)
         UNUserNotificationCenter.current().add(request) {error in
             if let error = error {
                 print("Error scheduling step goal reached notification \(error.localizedDescription)")
