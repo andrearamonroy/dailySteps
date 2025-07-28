@@ -10,6 +10,7 @@ import HealthKit
 import Combine
 import CoreData
 
+
 class HealthManager: ObservableObject {
     private let healthStore = HKHealthStore()
     
@@ -21,7 +22,9 @@ class HealthManager: ObservableObject {
             do {
                 if HKHealthStore.isHealthDataAvailable() {
                     try await healthStore.requestAuthorization(toShare: [], read: [stepType])
-                    startStepQuery()
+                    fetchTodaySteps { [weak self] total in
+                        self?.steps = total
+                    }
                     enableBackgroundDelivery()
                     observeStepChanges()
                 }
@@ -30,109 +33,40 @@ class HealthManager: ObservableObject {
             }
         }
     }
-    
-    private func startStepQuery() {
+
+    /// Fetches total steps for today
+    private func fetchTodaySteps(completion: @escaping (Double) -> Void) {
         let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
-        let predicate = HKQuery.predicateForSamples(withStart: Calendar.current.startOfDay(for: Date()), end: Date())
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date())
         
         let query = HKStatisticsCollectionQuery(
             quantityType: stepType,
             quantitySamplePredicate: predicate,
             options: .cumulativeSum,
-            anchorDate: Calendar.current.startOfDay(for: Date()),
+            anchorDate: startOfDay,
             intervalComponents: DateComponents(hour: 1)
         )
-
-        query.initialResultsHandler = { [weak self] _, results, error in
-            guard let self = self, let stats = results else {
-                print("steps: Failed to fetch steps: \(String(describing: error))")
+        
+        query.initialResultsHandler = { _, results, _ in
+            guard let stats = results else {
+                completion(0.0)
                 return
             }
-
             var totalSteps = 0.0
-            stats.enumerateStatistics(from: Calendar.current.startOfDay(for: Date()), to: Date()) { stat, _ in
+            stats.enumerateStatistics(from: startOfDay, to: Date()) { stat, _ in
                 if let sum = stat.sumQuantity() {
                     totalSteps += sum.doubleValue(for: .count())
                 }
             }
-
             DispatchQueue.main.async {
-                self.steps = totalSteps
+                completion(totalSteps)
             }
         }
-
-        // Enable real-time updates
-        query.statisticsUpdateHandler = { [weak self] _, stat, _, _ in
-            if let quantity = stat?.sumQuantity() {
-                let newSteps = quantity.doubleValue(for: .count())
-                DispatchQueue.main.async {
-                    self?.steps = newSteps
-                    print("steps: in real time fetch \(self?.steps)")
-                }
-            }
-        }
-
+        
         healthStore.execute(query)
     }
-    
-    
-    
-    private func saveGoalReachedIfNeeded(){
-        let context = PersistenceController.shared.container.viewContext
-        let today = Calendar.current.startOfDay(for: Date())
-        
-        let request: NSFetchRequest<Day> = Day.fetchRequest()
-                request.predicate = NSPredicate(format: "date == %@", today as NSDate)
-        
-        do{
-            let existing = try context.fetch(request)
-            if existing.first == nil {
-                let goal = Day(context: context)
-                goal.date = today
-                goal.didSteps = true
-                try context.save()
-                print("steps : Saved 10k steps for today!!")
-            }
-        }catch{
-            print(
-                "steps : error saving didSteps to core data \(error.localizedDescription)"
-            )
-        }
-    }
-    private func checkYesterdayStepGoalIfNeeded(){
-        let context = PersistenceController.shared.container.viewContext
-        let yesterday = Date().yesterday
-        let nextDay = yesterday.nextDay
-        
-        let request: NSFetchRequest<Day> = Day.fetchRequest()
-            request.predicate = NSPredicate(format: "date == %@", yesterday as NSDate)
-        
-        do{
-            let existing = try context.fetch(request)
-            if existing.isEmpty {
-                let predicate = HKQuery.predicateForSamples(withStart: yesterday, end: nextDay)
-                let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
-                
-                let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, _ in
-                             guard let sum = result?.sumQuantity() else { return }
-                             let steps = sum.doubleValue(for: .count())
 
-                             let record = Day(context: context)
-                             record.date = yesterday
-                            record.didSteps = steps >= 10_000
-                             try? context.save()
-                    print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
-                         }
-
-                         HKHealthStore().execute(query)
-            }
-        }catch{
-            print("steps : Error checking yesterday’s goal: \(error)")
-        }
-        
-        
-    }
-    
     private func enableBackgroundDelivery() {
         let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
         healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
@@ -153,9 +87,72 @@ class HealthManager: ObservableObject {
             }
 
             print("steps: observer triggered")
-            self?.startStepQuery()
+
+            self?.fetchTodaySteps { total in
+                self?.steps = total
+                print("steps: updated in real-time to \(total)")
+            }
         }
 
         healthStore.execute(observerQuery)
     }
+
+    //saves didStepsTrue if they completed their step goal
+    private func saveGoalReachedIfNeeded() {
+        let context = PersistenceController.shared.container.viewContext
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        let request: NSFetchRequest<Day> = Day.fetchRequest()
+        request.predicate = NSPredicate(format: "date == %@", today as NSDate)
+        
+        do {
+            let existing = try context.fetch(request)
+            if existing.first == nil {
+                let goal = Day(context: context)
+                goal.date = today
+                goal.didSteps = true
+                try context.save()
+                print("steps : Saved 10k steps for today!!")
+            }
+        } catch {
+            print("steps : error saving didSteps to core data \(error.localizedDescription)")
+        }
+    }
+
+    private func checkYesterdayStepGoalIfNeeded() {
+        let context = PersistenceController.shared.container.viewContext
+        let yesterday = Date().yesterday
+        let nextDay = yesterday.nextDay
+        
+        let request: NSFetchRequest<Day> = Day.fetchRequest()
+        request.predicate = NSPredicate(format: "date == %@", yesterday as NSDate)
+        
+        do {
+            let existing = try context.fetch(request)
+            if existing.isEmpty {
+                let predicate = HKQuery.predicateForSamples(withStart: yesterday, end: nextDay)
+                let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+                
+                let query = HKStatisticsQuery(
+                    quantityType: stepType,
+                    quantitySamplePredicate: predicate,
+                    options: .cumulativeSum
+                ) { _, result, _ in
+                    guard let sum = result?.sumQuantity() else { return }
+                    let steps = sum.doubleValue(for: .count())
+                    
+                    let record = Day(context: context)
+                    record.date = yesterday
+                    record.didSteps = steps >= 10_000
+                    try? context.save()
+                    print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
+                }
+
+                healthStore.execute(query)
+            }
+        } catch {
+            print("steps : Error checking yesterday’s goal: \(error)")
+        }
+    }
 }
+

@@ -11,9 +11,11 @@ import SwiftUI
 struct dailyStepsApp: App {
     let persistenceController = PersistenceController.shared
 
+    @StateObject private var mainViewModel = MainViewModel()
     var body: some Scene {
         WindowGroup {
             HomeView()
+                .environmentObject(mainViewModel)
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }

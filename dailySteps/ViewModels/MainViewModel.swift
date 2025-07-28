@@ -11,6 +11,7 @@ import Combine
 
 class MainViewModel : ObservableObject {
     @Published var steps: Double = 0.0
+    @Published var stepGoal: Double = 10000
     
     private var healthManager = HealthManager()
     private var notificationSentForDay = Date.distantPast

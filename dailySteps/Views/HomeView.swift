@@ -7,16 +7,17 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var mainViewModel = MainViewModel()
+    @EnvironmentObject private var mainViewModel : MainViewModel
     
     var body: some View {
-        VStack {
+        NavigationView {
+            VStack {
             Text("Steps today")
                 .font(.largeTitle)
                 .bold()
             Text("\(Int(mainViewModel.steps)) steps")
-                            .font(.title)
-
+                .font(.title)
+            
             if mainViewModel.steps >= 10000 {
                 Text("Goal Reached")
                     .foregroundStyle(.green)
@@ -24,8 +25,20 @@ struct HomeView: View {
                 Text( "Keep going")
                     .foregroundStyle(.orange)
             }
-
+            
         }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        StepGoalSettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+
+                }
+            }
+    }
+  
     }
 }
 
