@@ -8,7 +8,7 @@
 import SwiftUI
 import CoreData
 
-struct ContentView: View {
+struct CalendarView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest(
@@ -20,7 +20,7 @@ struct ContentView: View {
   
     
     //create an array that holds the days of the week
-    let daysOfWeek = ["S","M","T","W","T","F","S"]
+    let daysOfWeek = ["M","T","W","T","F","S","S"]
     
     var body: some View {
         NavigationView {
@@ -92,5 +92,5 @@ struct ContentView: View {
 
 
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    CalendarView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
 }

@@ -11,22 +11,16 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-            Text("Steps today")
-                .font(.largeTitle)
-                .bold()
-            Text("\(Int(mainViewModel.steps)) steps")
-                .font(.title)
-            
-            if mainViewModel.steps >= 10000 {
-                Text("Goal Reached")
-                    .foregroundStyle(.green)
-            } else {
-                Text( "Keep going")
-                    .foregroundStyle(.orange)
-            }
-            
-        }
+            TabView(content: {
+               CalendarView()
+                    .tabItem {
+                        Label("Calendar", systemImage: "calendar")
+                    }
+                StepView()
+                    .tabItem {
+                        Label("Steps", systemImage: "figure.walk")
+                    }
+            })
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -44,4 +38,26 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+}
+
+struct StepView : View {
+    @EnvironmentObject private var mainViewModel : MainViewModel
+    var body : some View {
+        VStack {
+        Text("Steps today")
+            .font(.largeTitle)
+            .bold()
+        Text("\(Int(mainViewModel.steps)) steps")
+            .font(.title)
+        
+        if mainViewModel.steps >= 5000 {
+            Text("Goal Reached")
+                .foregroundStyle(.green)
+        } else {
+            Text( "Keep going")
+                .foregroundStyle(.orange)
+        }
+        
+    }
+    }
 }

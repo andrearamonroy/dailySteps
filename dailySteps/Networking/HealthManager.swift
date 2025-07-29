@@ -11,7 +11,8 @@ import Combine
 import CoreData
 
 
-class HealthManager: ObservableObject {
+class HealthManager: ObservableObject{
+    
     private let healthStore = HKHealthStore()
     
     @Published var steps: Double = 0.0
@@ -27,6 +28,7 @@ class HealthManager: ObservableObject {
                     }
                     enableBackgroundDelivery()
                     observeStepChanges()
+                    checkYesterdayStepGoalIfNeeded()
                 }
             } catch {
                 print("steps: HealthKit authorization failed: \(error)")
@@ -90,6 +92,10 @@ class HealthManager: ObservableObject {
 
             self?.fetchTodaySteps { total in
                 self?.steps = total
+                if Int(total) >= 5000 {
+                    self?.saveGoalReachedIfNeeded()
+                    print("saving to core data")
+                }
                 print("steps: updated in real-time to \(total)")
             }
         }
@@ -104,7 +110,7 @@ class HealthManager: ObservableObject {
         
         let request: NSFetchRequest<Day> = Day.fetchRequest()
         request.predicate = NSPredicate(format: "date == %@", today as NSDate)
-        
+        print("steps : before do ")
         do {
             let existing = try context.fetch(request)
             if existing.first == nil {
@@ -112,7 +118,7 @@ class HealthManager: ObservableObject {
                 goal.date = today
                 goal.didSteps = true
                 try context.save()
-                print("steps : Saved 10k steps for today!!")
+                print("steps : Saved 5k steps for today!!")
             }
         } catch {
             print("steps : error saving didSteps to core data \(error.localizedDescription)")
@@ -143,7 +149,7 @@ class HealthManager: ObservableObject {
                     
                     let record = Day(context: context)
                     record.date = yesterday
-                    record.didSteps = steps >= 10_000
+                    record.didSteps = steps >= 5_000
                     try? context.save()
                     print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
                 }

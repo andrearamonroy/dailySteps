@@ -54,11 +54,19 @@ extension Date {
     //prefix for calendar view
     //do you want to add previous days lets say new month starts on a tuesday
     //do you want to include the last day of the last month? ex. Monday 30 --in our case NO!
+//    var startOfCalendarWithPrefixDays: Date {
+//        let startOfMonthWeekday = Calendar.current.component(.weekday, from: startOfMonth)
+//        let numberOfPrefixDays = startOfMonthWeekday - 1
+//        let startDate = Calendar.current.date(byAdding: .day, value: -numberOfPrefixDays, to: startOfMonth)!
+//        return startDate
+//    }
     var startOfCalendarWithPrefixDays: Date {
-        let startOfMonthWeekday = Calendar.current.component(.weekday, from: startOfMonth)
-        let numberOfPrefixDays = startOfMonthWeekday - 1
-        let startDate = Calendar.current.date(byAdding: .day, value: -numberOfPrefixDays, to: startOfMonth)!
-        return startDate
+        let start = self.startOfMonth
+        let weekday = Calendar.current.component(.weekday, from: start)
+
+        // In Calendar, Sunday = 1, Monday = 2, ..., Saturday = 7
+        let daysToSubtract = (weekday + 5) % 7  // Converts Sunday-start to Monday-start
+        return Calendar.current.date(byAdding: .day, value: -daysToSubtract, to: start)!
     }
     
     var startOfDay: Date {
