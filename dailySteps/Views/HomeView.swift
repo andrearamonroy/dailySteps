@@ -20,6 +20,10 @@ struct HomeView: View {
                     .tabItem {
                         Label("Steps", systemImage: "figure.walk")
                     }
+                HabitsListView()
+                    .tabItem {
+                        Label("Habits", systemImage: "figure.walk")
+                    }
             })
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
