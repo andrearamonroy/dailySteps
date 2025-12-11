@@ -48,19 +48,31 @@ struct Habit: Identifiable, Hashable {
 struct HabitsListView: View {
     @State private var habits : [Habit] = []
     @State private var isPresentingHabitView = false
+    @State private var selectedHabit: Habit? = nil
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 5) {
                     if habits.isEmpty {
-                        HabitRowView(habit: Habit(title: "Walk for 20 mins", days: [.friday]))
-                        
-                        
+                        Button {
+                            selectedHabit = Habit(title: "Walk for 20 mins", days: [.friday])
+                        } label: {
+                            HabitRowView(habit: Habit(title: "Walk for 20 mins", days: [.friday]))
+                        }
+                        .buttonStyle(.plain)
+       
                     } else {
                         ForEach(habits) { habit in
-                            HabitRowView(habit: habit)
                             
+                            Button {
+                                selectedHabit = habit
+                            } label: {
+                                HabitRowView(habit: habit)
+                            }
+                            .buttonStyle(.plain )
+
+                                
                         }
                     }
                 }
@@ -78,8 +90,12 @@ struct HabitsListView: View {
             }
             
             .navigationDestination(isPresented: $isPresentingHabitView) {
-                          AddHabitView(habits: $habits)
-                      }
+                AddHabitView(habits: $habits)
+            }
+            .navigationDestination(item: $selectedHabit) { habit in
+                EmptyView()
+            }
+        
         }
     }
 }
