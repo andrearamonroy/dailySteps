@@ -20,6 +20,12 @@ struct HomeView: View {
                     .tabItem {
                         Label("Steps", systemImage: "figure.walk")
                     }
+                
+                StreakView()
+                    .tabItem {
+                        Label("Streak", systemImage: "figure.walk")
+                    }
+                
             })
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -40,24 +46,4 @@ struct HomeView: View {
     HomeView()
 }
 
-struct StepView : View {
-    @EnvironmentObject private var mainViewModel : MainViewModel
-    var body : some View {
-        VStack {
-        Text("Steps today")
-            .font(.largeTitle)
-            .bold()
-        Text("\(Int(mainViewModel.steps)) steps")
-            .font(.title)
-        
-        if mainViewModel.steps >= 5000 {
-            Text("Goal Reached")
-                .foregroundStyle(.green)
-        } else {
-            Text( "Keep going")
-                .foregroundStyle(.orange)
-        }
-        
-    }
-    }
-}
+

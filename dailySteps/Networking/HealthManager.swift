@@ -17,15 +17,23 @@ class HealthManager: ObservableObject{
     
     @Published var steps: Double = 0.0
     
-    init() {
+    private let goalProvider: () -> Double
+    
+    //guards against non negatives
+    private var currentGoal: Double {
+         max(0, goalProvider())
+     }
+    
+    init(goalProvider: @escaping () -> Double) {
+        
+        self.goalProvider = goalProvider
+        
         let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
         Task {
             do {
                 if HKHealthStore.isHealthDataAvailable() {
                     try await healthStore.requestAuthorization(toShare: [], read: [stepType])
-                    fetchTodaySteps { [weak self] total in
-                        self?.steps = total
-                    }
+                    refreshTodaySteps()
                     enableBackgroundDelivery()
                     observeStepChanges()
                     checkYesterdayStepGoalIfNeeded()
@@ -36,6 +44,14 @@ class HealthManager: ObservableObject{
         }
     }
 
+    
+    /// Call this whenever you want to force a refresh
+      func refreshTodaySteps() {
+          fetchTodaySteps { [weak self] total in
+              self?.steps = total
+          }
+      }
+    
     /// Fetches total steps for today
     private func fetchTodaySteps(completion: @escaping (Double) -> Void) {
         let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
@@ -92,7 +108,10 @@ class HealthManager: ObservableObject{
 
             self?.fetchTodaySteps { total in
                 self?.steps = total
-                if Int(total) >= 5000 {
+                
+                let goal = self?.currentGoal ?? 0
+                
+                if goal > 0 && total >= goal {
                     self?.saveGoalReachedIfNeeded()
                     print("saving to core data")
                 }
@@ -118,7 +137,7 @@ class HealthManager: ObservableObject{
                 goal.date = today
                 goal.didSteps = true
                 try context.save()
-                print("steps : Saved 5k steps for today!!")
+                print("steps : Saved steps for today!!")
             }
         } catch {
             print("steps : error saving didSteps to core data \(error.localizedDescription)")
@@ -147,9 +166,11 @@ class HealthManager: ObservableObject{
                     guard let sum = result?.sumQuantity() else { return }
                     let steps = sum.doubleValue(for: .count())
                     
+                    let goal = self.currentGoal
+                    
                     let record = Day(context: context)
                     record.date = yesterday
-                    record.didSteps = steps >= 5_000
+                    record.didSteps = (goal > 0) && (steps >= goal)
                     try? context.save()
                     print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
                 }

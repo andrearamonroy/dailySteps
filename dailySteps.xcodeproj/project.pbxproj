@@ -6,7 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0D4AA5892F046BAC00DF5F83 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D4AA5882F046BAC00DF5F83 /* WidgetKit.framework */; };
+		0D4AA58B2F046BAC00DF5F83 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D4AA58A2F046BAC00DF5F83 /* SwiftUI.framework */; };
+		0D4AA59C2F046BAD00DF5F83 /* dailyStepsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D4AA5862F046BAC00DF5F83 /* dailyStepsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		0D4AA59A2F046BAD00DF5F83 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 65A2A2882DB5BCA20007ACD4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0D4AA5852F046BAC00DF5F83;
+			remoteInfo = dailyStepsWidgetExtension;
+		};
 		65A2A2A62DB5BCA40007ACD4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 65A2A2882DB5BCA20007ACD4 /* Project object */;
@@ -23,13 +36,38 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		0D4AA5A12F046BAD00DF5F83 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				0D4AA59C2F046BAD00DF5F83 /* dailyStepsWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0D4AA5862F046BAC00DF5F83 /* dailyStepsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = dailyStepsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		0D4AA5882F046BAC00DF5F83 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		0D4AA58A2F046BAC00DF5F83 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		0D4AA5A22F046CD200DF5F83 /* dailyStepsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = dailyStepsWidgetExtension.entitlements; sourceTree = "<group>"; };
 		65A2A2902DB5BCA20007ACD4 /* dailySteps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dailySteps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A2A2A52DB5BCA40007ACD4 /* dailyStepsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dailyStepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A2A2AF2DB5BCA40007ACD4 /* dailyStepsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dailyStepsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0D4AA5A02F046BAD00DF5F83 /* Exceptions for "dailyStepsWidget" folder in "dailyStepsWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */;
+		};
 		6542D5A82E23F42500970000 /* Exceptions for "dailySteps" folder in "dailySteps" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -40,6 +78,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0D4AA58C2F046BAC00DF5F83 /* dailyStepsWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0D4AA5A02F046BAD00DF5F83 /* Exceptions for "dailyStepsWidget" folder in "dailyStepsWidgetExtension" target */,
+			);
+			path = dailyStepsWidget;
+			sourceTree = "<group>";
+		};
 		65A2A2922DB5BCA20007ACD4 /* dailySteps */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -61,6 +107,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0D4AA5832F046BAC00DF5F83 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0D4AA58B2F046BAC00DF5F83 /* SwiftUI.framework in Frameworks */,
+				0D4AA5892F046BAC00DF5F83 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		65A2A28D2DB5BCA20007ACD4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -85,12 +140,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0D4AA5872F046BAC00DF5F83 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				0D4AA5882F046BAC00DF5F83 /* WidgetKit.framework */,
+				0D4AA58A2F046BAC00DF5F83 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		65A2A2872DB5BCA20007ACD4 = {
 			isa = PBXGroup;
 			children = (
+				0D4AA5A22F046CD200DF5F83 /* dailyStepsWidgetExtension.entitlements */,
 				65A2A2922DB5BCA20007ACD4 /* dailySteps */,
 				65A2A2A82DB5BCA40007ACD4 /* dailyStepsTests */,
 				65A2A2B22DB5BCA40007ACD4 /* dailyStepsUITests */,
+				0D4AA58C2F046BAC00DF5F83 /* dailyStepsWidget */,
+				0D4AA5872F046BAC00DF5F83 /* Frameworks */,
 				65A2A2912DB5BCA20007ACD4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,6 +168,7 @@
 				65A2A2902DB5BCA20007ACD4 /* dailySteps.app */,
 				65A2A2A52DB5BCA40007ACD4 /* dailyStepsTests.xctest */,
 				65A2A2AF2DB5BCA40007ACD4 /* dailyStepsUITests.xctest */,
+				0D4AA5862F046BAC00DF5F83 /* dailyStepsWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,6 +176,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0D4AA59D2F046BAD00DF5F83 /* Build configuration list for PBXNativeTarget "dailyStepsWidgetExtension" */;
+			buildPhases = (
+				0D4AA5822F046BAC00DF5F83 /* Sources */,
+				0D4AA5832F046BAC00DF5F83 /* Frameworks */,
+				0D4AA5842F046BAC00DF5F83 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0D4AA58C2F046BAC00DF5F83 /* dailyStepsWidget */,
+			);
+			name = dailyStepsWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = dailyStepsWidgetExtension;
+			productReference = 0D4AA5862F046BAC00DF5F83 /* dailyStepsWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		65A2A28F2DB5BCA20007ACD4 /* dailySteps */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 65A2A2B92DB5BCA40007ACD4 /* Build configuration list for PBXNativeTarget "dailySteps" */;
@@ -115,10 +205,12 @@
 				65A2A28C2DB5BCA20007ACD4 /* Sources */,
 				65A2A28D2DB5BCA20007ACD4 /* Frameworks */,
 				65A2A28E2DB5BCA20007ACD4 /* Resources */,
+				0D4AA5A12F046BAD00DF5F83 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				0D4AA59B2F046BAD00DF5F83 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				65A2A2922DB5BCA20007ACD4 /* dailySteps */,
@@ -183,9 +275,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 1640;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					0D4AA5852F046BAC00DF5F83 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 					65A2A28F2DB5BCA20007ACD4 = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -216,11 +311,19 @@
 				65A2A28F2DB5BCA20007ACD4 /* dailySteps */,
 				65A2A2A42DB5BCA40007ACD4 /* dailyStepsTests */,
 				65A2A2AE2DB5BCA40007ACD4 /* dailyStepsUITests */,
+				0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0D4AA5842F046BAC00DF5F83 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		65A2A28E2DB5BCA20007ACD4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,6 +348,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0D4AA5822F046BAC00DF5F83 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		65A2A28C2DB5BCA20007ACD4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -269,6 +379,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0D4AA59B2F046BAD00DF5F83 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */;
+			targetProxy = 0D4AA59A2F046BAD00DF5F83 /* PBXContainerItemProxy */;
+		};
 		65A2A2A72DB5BCA40007ACD4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 65A2A28F2DB5BCA20007ACD4 /* dailySteps */;
@@ -282,6 +397,64 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0D4AA59E2F046BAD00DF5F83 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = dailyStepsWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 54WBT8TSTM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = dailyStepsWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = dailyStepsWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dailySteps.dailyStepsWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0D4AA59F2F046BAD00DF5F83 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = dailyStepsWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 54WBT8TSTM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = dailyStepsWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = dailyStepsWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.dailySteps.dailyStepsWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		65A2A2B72DB5BCA40007ACD4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -410,7 +583,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"dailySteps/Preview Content\"";
-				DEVELOPMENT_TEAM = MK76AVV894;
+				DEVELOPMENT_TEAM = 54WBT8TSTM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = dailySteps/Info.plist;
@@ -443,7 +616,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"dailySteps/Preview Content\"";
-				DEVELOPMENT_TEAM = MK76AVV894;
+				DEVELOPMENT_TEAM = 54WBT8TSTM;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = dailySteps/Info.plist;
@@ -542,6 +715,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0D4AA59D2F046BAD00DF5F83 /* Build configuration list for PBXNativeTarget "dailyStepsWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0D4AA59E2F046BAD00DF5F83 /* Debug */,
+				0D4AA59F2F046BAD00DF5F83 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		65A2A28B2DB5BCA20007ACD4 /* Build configuration list for PBXProject "dailySteps" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
