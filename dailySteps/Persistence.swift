@@ -9,6 +9,20 @@ import CoreData
 
 struct PersistenceController {
     static let shared = PersistenceController()
+    let databaseName : String = "dailySteps.sqlite"
+
+    
+    var oldStoreURL : URL {
+        let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return directory.appendingPathComponent(databaseName)
+    }
+    
+    var sharedStoredURL : URL {
+        
+        //force unwrap app group, this can make it crash if we ever delete the app group
+      let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.andrearamonroy.dailySteps")!
+        return container.appendingPathComponent(databaseName)
+    }
 
     @MainActor
     static let preview: PersistenceController = {
@@ -38,23 +52,41 @@ struct PersistenceController {
         container = NSPersistentContainer(name: "dailySteps")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+            //if nothing exists at the oldStoreURL then point it at the shareStoredURL
+        }else if !FileManager.default.fileExists(atPath: oldStoreURL.path) {
+            print("no oldStoreURL found --> point to sharedStoredURL")
+            container.persistentStoreDescriptions.first!.url = sharedStoredURL
         }
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The persistent store is not accessible, due to permissions or data protection when the device is locked.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         })
+        migrateStore(for: container)
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
+    
+    
+    func migrateStore(for container: NSPersistentContainer) {
+        let coordinator = container.persistentStoreCoordinator
+        
+        guard let oldStore = coordinator.persistentStore(for: oldStoreURL) else { return }
+        print("old store deleted")
+        
+        
+        do {
+            let _ = try coordinator.migratePersistentStore(oldStore, to: sharedStoredURL, type: .sqlite)
+            print("migrated from old to new store successfully")
+        } catch {
+            fatalError("Unable to migrate to shared to store : \(error)")
+        }
+        
+        do {
+            try FileManager.default.removeItem(at: oldStoreURL)
+            print("old store deleted")
+        } catch {
+            print("unable to delete old store")
+        }
+    }
+    
 }

@@ -9,6 +9,7 @@ import Foundation
 import UserNotifications
 import Combine
 
+
 class MainViewModel : ObservableObject {
     //Step Goal for the user the change
     @Published var stepGoal: Double = 10000
@@ -29,7 +30,6 @@ class MainViewModel : ObservableObject {
     private var todayTimer: AnyCancellable?
     
     init(){
-
         // Observe HealthManager's steps and update
         healthManager.$steps
                 .receive(on: DispatchQueue.main)
@@ -60,6 +60,7 @@ class MainViewModel : ObservableObject {
             }
         }
     }
+    
     private func sendNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Congrats!"
@@ -91,4 +92,5 @@ class MainViewModel : ObservableObject {
         todayTimer?.cancel()
         todayTimer = nil
     }
+
 }

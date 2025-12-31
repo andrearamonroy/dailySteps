@@ -9,6 +9,7 @@ import Foundation
 import HealthKit
 import Combine
 import CoreData
+import WidgetKit
 
 
 class HealthManager: ObservableObject{
@@ -132,13 +133,36 @@ class HealthManager: ObservableObject{
         print("steps : before do ")
         do {
             let existing = try context.fetch(request)
-            if existing.first == nil {
-                let goal = Day(context: context)
-                goal.date = today
-                goal.didSteps = true
-                try context.save()
-                print("steps : Saved steps for today!!")
+            
+            //review this logic ...? before is the old one below is new logic
+            
+//            if existing.first == nil {
+//                let goal = Day(context: context)
+//                goal.date = today
+//                goal.didSteps = true
+//                try context.save()
+//                print("steps : Saved steps for today!!")
+//                
+//                //refresh the widget
+//                refreshWidget()
+//            
+//            }
+            
+          
+            let goal = self.currentGoal
+            
+            let record = Day(context: context)
+            record.date = today
+            if (goal > 0) && (self.steps >= goal) {
+                record.didSteps = true
+                try? context.save()
+                
+                //refresh widget
+                self.refreshWidget()
+                print("reached step goal for the day -- saving to core data: \(record.didSteps)")
             }
+            
+            
         } catch {
             print("steps : error saving didSteps to core data \(error.localizedDescription)")
         }
@@ -164,15 +188,24 @@ class HealthManager: ObservableObject{
                     options: .cumulativeSum
                 ) { _, result, _ in
                     guard let sum = result?.sumQuantity() else { return }
-                    let steps = sum.doubleValue(for: .count())
+                   
                     
                     let goal = self.currentGoal
                     
                     let record = Day(context: context)
                     record.date = yesterday
-                    record.didSteps = (goal > 0) && (steps >= goal)
-                    try? context.save()
-                    print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
+                    if (goal > 0) && (self.steps >= goal) {
+                        record.didSteps = true
+                        try? context.save()
+                        
+                        //refresh widget
+                        self.refreshWidget()
+                        print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
+                    }
+                   
+                   
+                    
+            
                 }
 
                 healthStore.execute(query)
@@ -180,6 +213,10 @@ class HealthManager: ObservableObject{
         } catch {
             print("steps : Error checking yesterday’s goal: \(error)")
         }
+    }
+    
+    func refreshWidget(){
+        WidgetCenter.shared.reloadTimelines(ofKind: "dailyStepsWidget")
     }
 }
 

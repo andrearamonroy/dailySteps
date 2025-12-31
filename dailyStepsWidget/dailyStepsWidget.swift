@@ -7,28 +7,57 @@
 
 import WidgetKit
 import SwiftUI
+import CoreData
 
 struct Provider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: ConfigurationAppIntent())
-    }
-
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+    //using core data persistence container view context in the widget to display data
+    let viewContext = PersistenceController.shared.container.viewContext
+    
+    //fetch request to core data extracted as a variable since it is used in multiple places
+    var dayFetchRequest: NSFetchRequest<Day> {
+        //fetching from core data the old way
+        let request = Day.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Day.date, ascending: true)]
+        request.predicate = NSPredicate(format: "(date >= %@) AND (date <= %@)",
+                                        Date().startOfCalendarWithPrefixDays as CVarArg,
+                                        Date().endOfMonth as CVarArg)
+        return request
     }
     
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
-        var entries: [SimpleEntry] = []
+    func placeholder(in context: Context) -> CalendarEntry {
+        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [])
+    }
 
-        // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-        let currentDate = Date()
-        for hourOffset in 0 ..< 5 {
-            let entryDate = Calendar.current.date(byAdding: .hour, value: hourOffset, to: currentDate)!
-            let entry = SimpleEntry(date: entryDate, configuration: configuration)
-            entries.append(entry)
+    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> CalendarEntry {
+        
+        //fetching from core data the old way
+
+        do{
+            let days = try viewContext.fetch(dayFetchRequest)
+            return  CalendarEntry(date: Date(), configuration: configuration, days: days)
+        } catch {
+            print("Widget failed to fetch days in the snapshot")
+            return  CalendarEntry(date: Date(), configuration: configuration, days: [])
+        }
+        
+        
+      
+        
+    }
+    
+    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<CalendarEntry> {
+      
+
+        do {
+           let days = try viewContext.fetch(dayFetchRequest)
+            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days)
+            return Timeline(entries: [entry], policy: .atEnd)
+        } catch {
+            print("Widget failed to fetch days in the snapshot")
+            return Timeline(entries: [], policy: .after(.now.endOfDay))
         }
 
-        return Timeline(entries: entries, policy: .atEnd)
+        
     }
 
 //    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
@@ -36,22 +65,78 @@ struct Provider: AppIntentTimelineProvider {
 //    }
 }
 
-struct SimpleEntry: TimelineEntry {
+struct CalendarEntry: TimelineEntry {
     let date: Date
     let configuration: ConfigurationAppIntent
+    let days : [Day]
 }
 
 struct dailyStepsWidgetEntryView : View {
     var entry: Provider.Entry
+    let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
     var body: some View {
-        VStack {
-            Text("Time:")
-            Text(entry.date, style: .time)
-
-            Text("Favorite Emoji:")
-            Text(entry.configuration.favoriteEmoji)
+        HStack {
+            VStack {
+                Text("\(calculateStreakValue())")
+                    .font(.system(size: 70, design: .rounded))
+                    .bold()
+                    .foregroundStyle(.red)
+                
+                Text("day streak")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+            }
+            VStack {
+                CalendarHeaderView(font: .caption2)
+                
+                LazyVGrid(columns: columns, spacing: 7) {
+                    ForEach(entry.days) { day in
+                        if day.date!.monthInt != Date().monthInt {
+                            Text("")
+                        } else {
+                            Text(day.date!.formatted(.dateTime.day()))
+                                .font(.caption2)
+                                .bold()
+                                .frame(maxWidth: .infinity)
+                                .foregroundStyle(day.didSteps ? .pink : .secondary)
+                                .background(
+                                    Circle()
+                                        .foregroundStyle(.pink.opacity(day.didSteps ? 0.4 : 0.0))
+                                        .scaleEffect(1.5)
+                                )
+                        }
+                    }
+                }
+            }
+            .padding(.leading)
         }
+    }
+    
+    func calculateStreakValue() -> Int {
+        //days is empty return 0 for the streak
+        guard !entry.days.isEmpty else {return 0}
+        
+        let nonFutureDays = entry.days.filter { $0.date!.dayInt <= Date().dayInt }
+        
+        var streakCount = 0
+        
+        for day in nonFutureDays.reversed() {
+            if day.didSteps {
+                streakCount += 1
+            } else {
+                //this checks if the date is not today then break
+                // if we are still on the same day then don't break the streak
+                if day.date!.dayInt != Date().dayInt {
+                    break
+                }
+             
+            }
+        }
+        
+        
+       return streakCount
     }
 }
 
@@ -63,6 +148,9 @@ struct dailyStepsWidget: Widget {
             dailyStepsWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
+        .configurationDisplayName("Daily Steps Widget")
+        .description("Track days you reach your step goal with streaks ⚡️⚡️ ")
+        .supportedFamilies([.systemMedium])
     }
 }
 
@@ -80,9 +168,10 @@ extension ConfigurationAppIntent {
     }
 }
 
-#Preview(as: .systemSmall) {
+#Preview(as: .systemMedium) {
     dailyStepsWidget()
+    
 } timeline: {
-    SimpleEntry(date: .now, configuration: .smiley)
-    SimpleEntry(date: .now, configuration: .starEyes)
+    CalendarEntry(date: .now, configuration: .smiley, days: [])
+    CalendarEntry(date: .now, configuration: .starEyes, days: [])
 }

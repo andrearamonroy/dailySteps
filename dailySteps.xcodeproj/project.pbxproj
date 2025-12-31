@@ -68,6 +68,16 @@
 			);
 			target = 0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */;
 		};
+		0D4AA5C52F05B7DB00DF5F83 /* Exceptions for "dailySteps" folder in "dailyStepsWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				dailySteps.xcdatamodeld,
+				"Extensions/Date+Ext.swift",
+				Persistence.swift,
+				Views/CalendarHeaderView.swift,
+			);
+			target = 0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */;
+		};
 		6542D5A82E23F42500970000 /* Exceptions for "dailySteps" folder in "dailySteps" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -90,6 +100,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				6542D5A82E23F42500970000 /* Exceptions for "dailySteps" folder in "dailySteps" target */,
+				0D4AA5C52F05B7DB00DF5F83 /* Exceptions for "dailySteps" folder in "dailyStepsWidgetExtension" target */,
 			);
 			path = dailySteps;
 			sourceTree = "<group>";
