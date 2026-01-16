@@ -26,6 +26,67 @@ struct CalendarView: View {
                 
                CalendarHeaderView()
                 
+                
+                
+                TimelineView(.everyMinute) { context in
+                    
+                    CalendarGridView(days: Array(days), today: context.date)
+                }
+           
+              
+            }
+            .navigationTitle(Date().formatted(.dateTime.month(.wide)))
+            .padding()
+            .onAppear{
+            
+                if days.isEmpty {
+                    createMonthDays(for: .now.startOfPreviousMonth)
+                    createMonthDays(for: .now)
+                    
+                } else if days.count < 10 {
+                    createMonthDays(for: .now)
+                }
+            }
+        }
+    }
+    func createMonthDays(for date: Date){
+        for dayOffset in 0..<date.numberOfDaysInMonth {
+            //to create a new date you do Date() but in core data you need to create it in the viewContext
+            let newDay = Day(context: viewContext)
+            newDay.date = Calendar.current.date(byAdding: .day, value: dayOffset, to: date.startOfMonth)
+            newDay.didSteps = false
+        }
+        
+        do {
+            try viewContext.save()
+            print("✅\(date.monthFullName) days created")
+        } catch  {
+            print("Failed to save contaxt")
+        }
+    }
+
+
+    
+}
+
+struct CalendarView1: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Day.date, ascending: true)],
+        predicate: NSPredicate(format: "(date >= %@) AND (date <= %@)",
+                               Date().startOfCalendarWithPrefixDays as CVarArg,
+                               Date().endOfMonth as CVarArg))
+    private var days: FetchedResults<Day>
+  
+    
+    var body: some View {
+        NavigationView {
+            //header
+            VStack {
+                
+               CalendarHeaderView()
+                
                 //days grid
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7)) {
                     ForEach(days) {day  in
@@ -77,7 +138,6 @@ struct CalendarView: View {
         }
     }
 }
-
 
 
 #Preview {

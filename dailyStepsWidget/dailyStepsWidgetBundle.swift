@@ -9,7 +9,7 @@ import WidgetKit
 import SwiftUI
 
 @main
-struct dailyStepsWidgetBundle: WidgetBundle {
+struct DailyStepsWidgetBundle: WidgetBundle {
     var body: some Widget {
         dailyStepsWidget()
         dailyStepsWidgetControl()

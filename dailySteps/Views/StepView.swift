@@ -9,41 +9,52 @@ import SwiftUI
 
 struct StepView : View {
     @EnvironmentObject private var mainViewModel : MainViewModel
+    @State private var showSettings = false  
     var body : some View {
-        VStack {
-            
-            Text(mainViewModel.todayDate, format: .dateTime.weekday().day().month().year())
-             
-            
-            
-            
-            Text("\(Int(mainViewModel.healthManager.steps))")
-                .font(.title)
-            Text("steps")
-                .font(.headline)
-                .bold()
-            Text("--------------")
-            Text("Goal: \(Int(mainViewModel.stepGoal))")
-            
-            if mainViewModel.healthManager.steps >= mainViewModel.stepGoal {
-                Text("Goal Reached")
-                    .foregroundStyle(.green)
-            } else if mainViewModel.healthManager.steps < mainViewModel.stepGoal {
-                Text( "Keep going")
-                    .foregroundStyle(.orange)
-            } else if mainViewModel.healthManager.steps == 0.0 {
-                Text( "Get your first step in! You got this!")
-                    .foregroundStyle(.orange)
+        NavigationStack {
+            VStack {
+                
+                Text(mainViewModel.todayDate, format: .dateTime.weekday().day().month().year())
+                
+                
+                
+                
+                Text("\(mainViewModel.healthManager.stepCount)")
+                    .font(.title)
+                Text("steps")
+                    .font(.headline)
+                    .bold()
+                Text("--------------")
+                Text("Goal: \(Int(mainViewModel.stepGoal))")
+                
+                if mainViewModel.healthManager.stepCount >= mainViewModel.stepGoal {
+                    Text("Goal Reached")
+                        .foregroundStyle(.green)
+                } else {
+                    Text( "Keep going")
+                        .foregroundStyle(.orange)
+                }
+                
+                
+                WeeklyStepsView()
+                
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: StepGoalSettingsView()
+                        .environmentObject(mainViewModel)) {
+                            Image(systemName: "gearshape")
+                        }
+                }
             }
             
         }
+
         
         .onAppear {
-            mainViewModel.startTodayTimer()
+            mainViewModel.healthManager.refreshTodaySteps()
         }
-        .onDisappear {
-            mainViewModel.stopTodayTimer()
-        }
+       
         
     }
 }

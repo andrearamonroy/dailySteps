@@ -18,9 +18,9 @@ extension Date {
         Calendar.current.dateInterval(of: .month, for: self)!.end
     }
 
-    var endOfDay: Date {
-        Calendar.current.dateInterval(of: .day, for: self)!.end
-    }
+//    var endOfDay: Date {
+//        Calendar.current.dateInterval(of: .day, for: self)!.end
+//    }
 
     var startOfPreviousMonth: Date {
         let dayInPreviousMonth = Calendar.current.date(byAdding: .month, value: -1, to: self)!
@@ -69,9 +69,9 @@ extension Date {
         return Calendar.current.date(byAdding: .day, value: -daysToSubtract, to: start)!
     }
     
-    var startOfDay: Date {
-        Calendar.current.startOfDay(for: self)
-    }
+//    var startOfDay: Date {
+//        Calendar.current.startOfDay(for: self)
+//    }
     
     var yesterday: Date {
         Calendar.current.date(byAdding: .day, value: -1, to: self.startOfDay)!
@@ -80,4 +80,31 @@ extension Date {
     var nextDay: Date {
         Calendar.current.date(byAdding: .day, value: 1, to: self.startOfDay)!
     }
+    
+ 
+    
+    // Force Monday as start of week
+    var startOfWeek: Date {
+        var cal = Calendar.current
+        cal.firstWeekday = 2 // Monday = 2
+        let components = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
+        return cal.date(from: components)!
+    }
+    
+    var endOfWeek: Date {
+        Calendar.current.date(byAdding: .day, value: 6, to: startOfWeek)!
+    }
+    
+    var startOfDay: Date {
+        Calendar.current.startOfDay(for: self)
+    }
+    
+    var endOfDay: Date {
+        Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: self)!
+    }
+    
+    func isSameDay(as otherDate: Date) -> Bool {
+        Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
+    
 }

@@ -30,7 +30,7 @@ struct PersistenceController {
         let viewContext = result.container.viewContext
         //forcwed unwrapped
         let startDate = Calendar.current.dateInterval(of: .month, for: .now)!.start
-        for dayOffSet in 0..<30 {
+        for dayOffSet in 0..<31 {
             let newDay = Day(context: viewContext)
             newDay.date = Calendar.current.date(byAdding: .day, value: dayOffSet ,to: startDate)
             newDay.didSteps = Bool.random()
@@ -62,7 +62,11 @@ struct PersistenceController {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         })
+        
+        
         migrateStore(for: container)
+        // Enforce unique constraint behavior globally
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
     

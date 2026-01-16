@@ -14,9 +14,9 @@
             filePath = "dailySteps/Networking/HealthManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "107"
-            endingLineNumber = "107"
-            landmarkName = "saveGoalReachedIfNeeded()"
+            startingLineNumber = "133"
+            endingLineNumber = "133"
+            landmarkName = "observeStepChanges()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -30,9 +30,9 @@
             filePath = "dailySteps/Networking/HealthManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "124"
-            endingLineNumber = "124"
-            landmarkName = "saveGoalReachedIfNeeded()"
+            startingLineNumber = "163"
+            endingLineNumber = "163"
+            landmarkName = "observeStepChanges()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -46,9 +46,9 @@
             filePath = "dailySteps/Networking/HealthManager.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "121"
-            endingLineNumber = "121"
-            landmarkName = "saveGoalReachedIfNeeded()"
+            startingLineNumber = "160"
+            endingLineNumber = "160"
+            landmarkName = "observeStepChanges()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

@@ -7,57 +7,135 @@
 
 import SwiftUI
 
-import SwiftUI
 
 struct StepGoalSettingsView: View {
     @EnvironmentObject var mainViewModel: MainViewModel
-    @State private var isEditing = false
-    @State private var tempGoal: String = ""
+    
+    @State private var showCustomSheet = false
+    @State private var customGoalText = ""
+
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Step Goal")) {
-                    if isEditing {
-                        HStack {
-                            TextField("Enter step goal", text: $tempGoal)
-                                .keyboardType(.numberPad)
-                            Spacer()
-                        }
+        Form {
+            Section(
+                header: Text("Step Goal")
+            ) {
+                Stepper(
+                    value: $mainViewModel.stepGoal,
+                    in: 1_000...20_000,
+                    step: 500
+                ) {
+                    Text("Daily step goal: \(mainViewModel.stepGoal.formatted())")
+                }
 
-                        HStack {
-                            Button("Cancel") {
-                                isEditing = false
-                            }
-                            .foregroundColor(.red)
-
-                            Spacer()
-
-                            Button("Done") {
-                                if let newGoal = Double(tempGoal), newGoal > 0 {
-                                    mainViewModel.stepGoal = newGoal
-                                }
-                                isEditing = false
-                            }
-                            .foregroundColor(.blue)
-                        }
-                    } else {
-                        HStack {
-                            Text("Current Goal")
-                            Spacer()
-                            Text("\(Int(mainViewModel.stepGoal)) steps")
-                                .foregroundColor(.gray)
-                        }
-                        .contentShape(Rectangle()) // Makes the row tappable
-                        .onTapGesture {
-                            tempGoal = String(Int(mainViewModel.stepGoal))
-                            isEditing = true
-                        }
-                    }
+                Button("Custom...") {
+                    customGoalText = String(mainViewModel.stepGoal)
+                    showCustomSheet = true
                 }
             }
-            .navigationTitle("Settings")
+
+
+            Section(
+                header: Text("Streak Grace Days"),
+                footer: Text("How many days can you miss without breaking your streak?")
+            ) {
+                Stepper("Grace days allowed: \(mainViewModel.graceDays)",
+                        value: $mainViewModel.graceDays,
+                        in: 0...3)
+            }
+
+            
+            Section(
+                header: Text("Theme"),
+                footer: Text("Choose the colors of your app!")
+            ) {
+               
+                ThemePickerView(primary: $mainViewModel.primaryColor,
+                                secondary: $mainViewModel.secondaryColor,
+                                background: $mainViewModel.backgroundColor
+                )
+            }
+            
+         
+            
         }
+        .navigationTitle("Settings")
+        .sheet(isPresented: $showCustomSheet) {
+            CustomStepGoalView(text: $customGoalText) { newGoal in
+                mainViewModel.stepGoal = newGoal
+            }
+        }
+
     }
 }
 
+
+struct CustomStepGoalView : View {
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    @Binding var text: String
+    let onSave: (Int) -> Void
+    
+    @State private var errorMessage: String?
+    
+    var body : some View  {
+        NavigationView {
+            Form {
+                Section(header: Text("Custom Step Goal")) {
+                    TextField("Enter steps: ", text: $text)
+                        .keyboardType(.numberPad)
+                    
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Custom Goal")
+            .toolbar {
+                
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                    }
+                }
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        validateAndSave()
+                    } label: {
+                        Text("Done")
+                    }
+                    
+                }
+            }
+        }
+    }
+    
+    private func validateAndSave(){
+        
+        let cleanedText = text.replacingOccurrences(
+            of: "[^0-9]",
+            with: "",
+            options: .regularExpression
+        )
+        
+        guard let value = Int(cleanedText) else {
+            errorMessage = "Please enter a valid number"
+            return
+        }
+        
+        guard (500 ... 50_000).contains(value) else {
+            errorMessage = "Step Goal must be between 500 and 50,000 steps."
+            return
+        }
+        
+        onSave(value)
+        dismiss()
+        
+    }
+}

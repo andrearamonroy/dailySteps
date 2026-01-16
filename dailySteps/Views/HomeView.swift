@@ -23,21 +23,16 @@ struct HomeView: View {
                 
                 StreakView()
                     .tabItem {
-                        Label("Streak", systemImage: "figure.walk")
+                        Label("Streak", systemImage: "bolt")
+                    }
+                
+                StepGoalHistoryView()
+                    .tabItem {
+                        Label("History", systemImage: "book")
                     }
                 
             })
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink {
-                        StepGoalSettingsView()
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-
-                }
-            }
-    }
+        }
   
     }
 }

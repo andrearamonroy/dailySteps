@@ -12,24 +12,37 @@ import CoreData
 import WidgetKit
 
 
-class HealthManager: ObservableObject{
+class HealthManager: ObservableObject {
     
     private let healthStore = HKHealthStore()
     
-    @Published var steps: Double = 0.0
+    //this will be deleted
+   // @Published var steps: Double = 0.0
     
-    private let goalProvider: () -> Double
+    //main actor bc we want this changes to show on the UI
+    //(set) reusable outside, writable only inside
+    @MainActor
+    @Published private(set) var stepCount : Int = 0
+    
+    private let goalProvider: () -> Int
     
     //guards against non negatives
-    private var currentGoal: Double {
+    private var currentGoal: Int {
          max(0, goalProvider())
      }
     
-    init(goalProvider: @escaping () -> Double) {
+    //helper method --> computed property to use in all needed funcs
+    //if it fails it returns nil
+    private var stepType : HKQuantityType? {
+        HKQuantityType.quantityType(forIdentifier: .stepCount)
+    }
+    
+    init(goalProvider: @escaping () -> Int) {
         
         self.goalProvider = goalProvider
         
-        let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+        guard let stepType = stepType else { return }
+
         Task {
             do {
                 if HKHealthStore.isHealthDataAvailable() {
@@ -37,7 +50,7 @@ class HealthManager: ObservableObject{
                     refreshTodaySteps()
                     enableBackgroundDelivery()
                     observeStepChanges()
-                    checkYesterdayStepGoalIfNeeded()
+                   // checkYesterdayStepGoalIfNeeded()
                 }
             } catch {
                 print("steps: HealthKit authorization failed: \(error)")
@@ -46,16 +59,27 @@ class HealthManager: ObservableObject{
     }
 
     
+    ///High-level state update
     /// Call this whenever you want to force a refresh
+    // Triggers UI / persistence / widgets
       func refreshTodaySteps() {
           fetchTodaySteps { [weak self] total in
-              self?.steps = total
+              //rounded down since we don't want to round 9,999 to 10k
+              let stepInt = Int(total.rounded(.down))
+              
+              Task { @MainActor in
+                  self?.stepCount = stepInt
+              }
           }
       }
     
     /// Fetches total steps for today
+    /// this is a data provider
     private func fetchTodaySteps(completion: @escaping (Double) -> Void) {
-        let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+        
+        guard let stepType = stepType else { return }
+
+
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date())
         
@@ -87,7 +111,8 @@ class HealthManager: ObservableObject{
     }
 
     private func enableBackgroundDelivery() {
-        let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        guard let stepType = stepType else { return }
+
         healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
             if success {
                 print("steps: background delivery enabled")
@@ -98,7 +123,8 @@ class HealthManager: ObservableObject{
     }
 
     private func observeStepChanges() {
-        let stepType = HKObjectType.quantityType(forIdentifier: .stepCount)!
+        guard let stepType = stepType else { return }
+
         let observerQuery = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, _, error in
             if let error = error {
                 print("steps: observer error \(error)")
@@ -108,15 +134,28 @@ class HealthManager: ObservableObject{
             print("steps: observer triggered")
 
             self?.fetchTodaySteps { total in
-                self?.steps = total
                 
-                let goal = self?.currentGoal ?? 0
+                let totalInt = Int(total.rounded(.down))
                 
-                if goal > 0 && total >= goal {
-                    self?.saveGoalReachedIfNeeded()
-                    print("saving to core data")
+                
+                Task { @MainActor in
+                
+                    guard let self = self else {return}
+                    
+                    self.stepCount = totalInt
+                    
+                    let goal = self.currentGoal
+                    
+                    
+                    if goal > 0 && totalInt >= goal {
+                        self.saveGoalReached()
+                        print("saving to core data")
+                    }
+                    
+                    
+                    print("steps: updated in real-time to \(total)")
+                    
                 }
-                print("steps: updated in real-time to \(total)")
             }
         }
 
@@ -124,50 +163,85 @@ class HealthManager: ObservableObject{
     }
 
     //saves didStepsTrue if they completed their step goal
-    private func saveGoalReachedIfNeeded() {
+    @MainActor
+    private func saveGoalReached() {
         let context = PersistenceController.shared.container.viewContext
         let today = Calendar.current.startOfDay(for: Date())
-        
+
         let request: NSFetchRequest<Day> = Day.fetchRequest()
         request.predicate = NSPredicate(format: "date == %@", today as NSDate)
-        print("steps : before do ")
+
         do {
             let existing = try context.fetch(request)
-            
-            //review this logic ...? before is the old one below is new logic
-            
-//            if existing.first == nil {
-//                let goal = Day(context: context)
-//                goal.date = today
-//                goal.didSteps = true
-//                try context.save()
-//                print("steps : Saved steps for today!!")
-//                
-//                //refresh the widget
-//                refreshWidget()
-//            
-//            }
-            
-          
+            //if today already exist in core data use that else create a new day
+            let record = existing.first ?? Day(context: context)
+
+            record.date = today
+
             let goal = self.currentGoal
             
-            let record = Day(context: context)
-            record.date = today
-            if (goal > 0) && (self.steps >= goal) {
-                record.didSteps = true
-                try? context.save()
-                
-                //refresh widget
-                self.refreshWidget()
-                print("reached step goal for the day -- saving to core data: \(record.didSteps)")
+            guard goal > 0, self.stepCount >= goal else {
+                // Goal not reached → do nothing
+                return
             }
-            
-            
+
+            // Only mark true (never false)
+            if record.didSteps == false {
+                record.didSteps = true
+                try context.save()
+                refreshWidget()
+                print("Reached step goal for today — saved didSteps = true")
+            }
+
         } catch {
-            print("steps : error saving didSteps to core data \(error.localizedDescription)")
+            print("Error saving didSteps: \(error.localizedDescription)")
         }
     }
 
+    
+    func saveStepsForToday(
+        stepCount: Int,
+        context: NSManagedObjectContext
+    ) {
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let tomorrowStart = calendar.date(byAdding: .day, value: 1, to: todayStart)!
+
+        // Fetch existing record for today
+        let request: NSFetchRequest<Day> = Day.fetchRequest()
+        request.fetchLimit = 1
+        request.predicate = NSPredicate(
+            format: "date >= %@ AND date < %@",
+            todayStart as NSDate,
+            tomorrowStart as NSDate
+        )
+
+        do {
+            let results = try context.fetch(request)
+
+            let day: Day
+            if let existingDay = results.first {
+                // Update existing record
+                day = existingDay
+            } else {
+                // Create new record
+                day = Day(context: context)
+                day.date = todayStart
+            }
+
+            day.stepCount = Int64(stepCount)
+
+            try context.save()
+            print("steps: Saved step count for today:", stepCount)
+
+        } catch {
+            print("steps: Failed to save step count:", error)
+        }
+    }
+
+    
+
+    //COME BACK 
     private func checkYesterdayStepGoalIfNeeded() {
         let context = PersistenceController.shared.container.viewContext
         let yesterday = Date().yesterday
@@ -180,7 +254,8 @@ class HealthManager: ObservableObject{
             let existing = try context.fetch(request)
             if existing.isEmpty {
                 let predicate = HKQuery.predicateForSamples(withStart: yesterday, end: nextDay)
-                let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+                
+                guard let stepType = stepType else { return }
                 
                 let query = HKStatisticsQuery(
                     quantityType: stepType,
@@ -188,24 +263,35 @@ class HealthManager: ObservableObject{
                     options: .cumulativeSum
                 ) { _, result, _ in
                     guard let sum = result?.sumQuantity() else { return }
-                   
                     
-                    let goal = self.currentGoal
+                    // Convert HealthKit Double → Int
+                        let yesterdaySteps = Int(sum.doubleValue(for: .count()).rounded(.down))
+
                     
-                    let record = Day(context: context)
-                    record.date = yesterday
-                    if (goal > 0) && (self.steps >= goal) {
-                        record.didSteps = true
-                        try? context.save()
+                    Task { @MainActor in
+                    
                         
-                        //refresh widget
-                        self.refreshWidget()
-                        print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
+                        //MARK : COME BACK TO REVIEW THIS HERE
+                        
+                        let record: Day
+                          if let first = existing.first {
+                              record = first
+                          } else {
+                              record = Day(context: context)
+                              record.date = yesterday
+                          }
+                        
+                        // Compare yesterday's steps with currentGoal (Int)
+                        if self.currentGoal > 0 && yesterdaySteps >= self.currentGoal {
+                            record.didSteps = true
+                            try? context.save()
+                            
+                            //refresh widget
+                            self.refreshWidget()
+                            print("steps: Backfilled yesterday’s goal: \(record.didSteps)")
+                        }
                     }
-                   
-                   
-                    
-            
+  
                 }
 
                 healthStore.execute(query)
@@ -214,6 +300,8 @@ class HealthManager: ObservableObject{
             print("steps : Error checking yesterday’s goal: \(error)")
         }
     }
+    
+    
     
     func refreshWidget(){
         WidgetCenter.shared.reloadTimelines(ofKind: "dailyStepsWidget")

@@ -9,9 +9,40 @@ import WidgetKit
 import SwiftUI
 import CoreData
 
+
+
+struct WidgetTheme {
+    let primary: Color
+    let secondary: Color
+}
+
+func loadWidgetTheme() -> WidgetTheme {
+    guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
+        return WidgetTheme(primary: .blue, secondary: .mint)
+    }
+
+    let primaryRaw = defaults.string(forKey: "primaryColor") ?? "blue"
+    let secondaryRaw = defaults.string(forKey: "secondaryColor") ?? "mint"
+
+    return WidgetTheme(
+        primary: PastelColor(rawValue: primaryRaw)?.color ?? PastelColor.blue.color,
+        secondary: PastelColor(rawValue: secondaryRaw)?.color ?? PastelColor.mint.color
+    )
+}
+
+
 struct Provider: AppIntentTimelineProvider {
     //using core data persistence container view context in the widget to display data
     let viewContext = PersistenceController.shared.container.viewContext
+    
+    
+    // Shared AppStorage for graceDays
+        @AppStorage(
+            "graceDays",
+            store: UserDefaults(suiteName: "group.com.yourapp.streak")
+        )
+        var graceDays: Int = 0
+    
     
     //fetch request to core data extracted as a variable since it is used in multiple places
     var dayFetchRequest: NSFetchRequest<Day> {
@@ -25,19 +56,21 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func placeholder(in context: Context) -> CalendarEntry {
-        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [])
+        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> CalendarEntry {
         
         //fetching from core data the old way
 
-        do{
+        do {
+            let theme = loadWidgetTheme()
             let days = try viewContext.fetch(dayFetchRequest)
-            return  CalendarEntry(date: Date(), configuration: configuration, days: days)
+            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+            return  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme)
         } catch {
             print("Widget failed to fetch days in the snapshot")
-            return  CalendarEntry(date: Date(), configuration: configuration, days: [])
+            return  CalendarEntry(date: Date(), configuration: configuration, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
         }
         
         
@@ -49,8 +82,11 @@ struct Provider: AppIntentTimelineProvider {
       
 
         do {
+            let theme = loadWidgetTheme()
            let days = try viewContext.fetch(dayFetchRequest)
-            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days)
+            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+            
+            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme)
             return Timeline(entries: [entry], policy: .atEnd)
         } catch {
             print("Widget failed to fetch days in the snapshot")
@@ -69,6 +105,8 @@ struct CalendarEntry: TimelineEntry {
     let date: Date
     let configuration: ConfigurationAppIntent
     let days : [Day]
+    let streak : Int
+    let theme: WidgetTheme
 }
 
 struct dailyStepsWidgetEntryView : View {
@@ -78,10 +116,10 @@ struct dailyStepsWidgetEntryView : View {
     var body: some View {
         HStack {
             VStack {
-                Text("\(calculateStreakValue())")
+                Text("\(entry.streak)")
                     .font(.system(size: 70, design: .rounded))
                     .bold()
-                    .foregroundStyle(.red)
+                    .foregroundStyle(entry.theme.primary)
                 
                 Text("day streak")
                     .font(.caption)
@@ -90,53 +128,11 @@ struct dailyStepsWidgetEntryView : View {
             }
             VStack {
                 CalendarHeaderView(font: .caption2)
-                
-                LazyVGrid(columns: columns, spacing: 7) {
-                    ForEach(entry.days) { day in
-                        if day.date!.monthInt != Date().monthInt {
-                            Text("")
-                        } else {
-                            Text(day.date!.formatted(.dateTime.day()))
-                                .font(.caption2)
-                                .bold()
-                                .frame(maxWidth: .infinity)
-                                .foregroundStyle(day.didSteps ? .pink : .secondary)
-                                .background(
-                                    Circle()
-                                        .foregroundStyle(.pink.opacity(day.didSteps ? 0.4 : 0.0))
-                                        .scaleEffect(1.5)
-                                )
-                        }
-                    }
-                }
+
+                CalendarGridView(days: entry.days, today: entry.date)
             }
             .padding(.leading)
         }
-    }
-    
-    func calculateStreakValue() -> Int {
-        //days is empty return 0 for the streak
-        guard !entry.days.isEmpty else {return 0}
-        
-        let nonFutureDays = entry.days.filter { $0.date!.dayInt <= Date().dayInt }
-        
-        var streakCount = 0
-        
-        for day in nonFutureDays.reversed() {
-            if day.didSteps {
-                streakCount += 1
-            } else {
-                //this checks if the date is not today then break
-                // if we are still on the same day then don't break the streak
-                if day.date!.dayInt != Date().dayInt {
-                    break
-                }
-             
-            }
-        }
-        
-        
-       return streakCount
     }
 }
 
@@ -172,6 +168,6 @@ extension ConfigurationAppIntent {
     dailyStepsWidget()
     
 } timeline: {
-    CalendarEntry(date: .now, configuration: .smiley, days: [])
-    CalendarEntry(date: .now, configuration: .starEyes, days: [])
+    CalendarEntry(date: .now, configuration: .smiley, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint) )
+    CalendarEntry(date: .now, configuration: .starEyes, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
 }

@@ -8,14 +8,37 @@
 import Foundation
 import UserNotifications
 import Combine
+import SwiftUI
+import WidgetKit
 
 
 class MainViewModel : ObservableObject {
     //Step Goal for the user the change
-    @Published var stepGoal: Double = 10000
+    /// AppStorage works with swiftui
+    @AppStorage("stepGoal") var stepGoal : Int = 10_000 {
+        didSet {
+            print("oldValue = \(oldValue), newValue = \(stepGoal)")
+            
+            guard oldValue != stepGoal else { return }
+            stepGoalHistoyManager.addChange(goal: stepGoal)
+            
+            print("Step goal actually changed from \(oldValue) to \(stepGoal). Save it!")
+        }
+    }
+    
+    //including the group so that the widget has access to the grace days 
+    @AppStorage(
+        "graceDays",
+        store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")
+    )
+    var graceDays: Int = 0
+
+    
+    @Published var stepGoalHistoyManager = StepGoalHistoryManager()
     
    lazy var healthManager = HealthManager(
         goalProvider: { [weak self] in
+            //pass step goal from the user to the health kit manager so that we can compare to the goal and then save
             self?.stepGoal ?? 0
         }
     )
@@ -29,20 +52,78 @@ class MainViewModel : ObservableObject {
     //cancellable for the todayDate timer
     private var todayTimer: AnyCancellable?
     
+    
+    private let groupDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")!
+
+        // MARK: - Theme Colors
+        @Published var primaryColor: PastelColor {
+            didSet { saveColors() }
+        }
+        @Published var secondaryColor: PastelColor {
+            didSet { saveColors() }
+        }
+    @Published var backgroundColor: PastelColor {
+        didSet { saveColors() }
+    }
+    
+    
     init(){
+
+        // Load persisted colors from App Group
+        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? PastelColor.blue.rawValue
+        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? PastelColor.mint.rawValue
+        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? PastelColor.mint.rawValue
+        
+        self.primaryColor = PastelColor(rawValue: primaryRaw) ?? .blue
+        self.secondaryColor = PastelColor(rawValue: secondaryRaw) ?? .mint
+        
+        self.backgroundColor = PastelColor(rawValue: backgroundRaw) ?? .mint
+
+
+
         // Observe HealthManager's steps and update
-        healthManager.$steps
+        healthManager.$stepCount
                 .receive(on: DispatchQueue.main)
                 .sink { [weak self] newSteps in
+                    /*
+                    weak self prevents retain cycles and memory leaks but it can become nil at any time
+                    self is optional because of weak self we need it to actually exist to call .checkStepGoalAndNotify
+                    below is the same as =
+                     
+                     if self == nil {
+                         return // exit the closure immediately
+                     }
+                     let self = self! // unwrap self safely for the rest of the closure
+                     
+                    */
+                    guard let self = self else { return }
+                    
                     print("Steps updated:", newSteps)
-                    self?.checkStepGoalAndNotify(steps: newSteps, stepGoal: self?.stepGoal ?? 0.0)
+                    self.checkStepGoalAndNotify(steps: newSteps, stepGoal: self.stepGoal)
                 }
                 .store(in: &cancellables)
         
         requestNotificationPermission()
+        
+        
+     
+
+        
+        
     }
     
-    private func checkStepGoalAndNotify(steps: Double, stepGoal: Double ) {
+    
+    
+    private func saveColors() {
+        groupDefaults.set(primaryColor.rawValue, forKey: "primaryColor")
+        groupDefaults.set(secondaryColor.rawValue, forKey: "secondaryColor")
+
+        // Tell widgets to refresh
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+    
+    //If i need to do push notification I will make a separate class for this
+    private func checkStepGoalAndNotify(steps: Int, stepGoal: Int ) {
         let today = Date().startOfDay
         // Only notify once per day
         guard steps >= stepGoal && notificationSentForDay < today else { return }
@@ -76,21 +157,6 @@ class MainViewModel : ObservableObject {
                 print("Error scheduling step goal reached notification \(error.localizedDescription)")
             }
         }
-    }
-    
-    //timer to update today's date on the main screen
-    func startTodayTimer(){
-        //timer check every 60 secs to update at midnight
-        todayTimer = Timer.publish(every: 60, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] date in
-                self?.todayDate = date
-            }
-    }
-    //timer (stop action) to update today's date on the main screen
-    func stopTodayTimer(){
-        todayTimer?.cancel()
-        todayTimer = nil
     }
 
 }
