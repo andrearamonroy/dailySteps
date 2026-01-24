@@ -10,7 +10,6 @@ import SwiftUI
 import CoreData
 
 
-
 struct WidgetTheme {
     let primary: Color
     let secondary: Color
@@ -106,7 +105,7 @@ struct CalendarEntry: TimelineEntry {
     let configuration: ConfigurationAppIntent
     let days : [Day]
     let streak : Int
-    let theme: WidgetTheme
+    let theme: WidgetTheme 
 }
 
 struct dailyStepsWidgetEntryView : View {

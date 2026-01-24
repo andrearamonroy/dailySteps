@@ -10,6 +10,7 @@
 		0D4AA5892F046BAC00DF5F83 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D4AA5882F046BAC00DF5F83 /* WidgetKit.framework */; };
 		0D4AA58B2F046BAC00DF5F83 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D4AA58A2F046BAC00DF5F83 /* SwiftUI.framework */; };
 		0D4AA59C2F046BAD00DF5F83 /* dailyStepsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0D4AA5862F046BAC00DF5F83 /* dailyStepsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		65041F4E2F23F493002FC359 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65041F4D2F23F493002FC359 /* WelcomeView.swift */; };
 		655DFF5F2F18128F00C97F8C /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF5E2F18128F00C97F8C /* StreakCalculator.swift */; };
 		655DFF602F18128F00C97F8C /* StreakCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF5E2F18128F00C97F8C /* StreakCalculator.swift */; };
 		655DFF622F18189C00C97F8C /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF612F18189C00C97F8C /* CalendarGridView.swift */; };
@@ -61,6 +62,7 @@
 		0D4AA5882F046BAC00DF5F83 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		0D4AA58A2F046BAC00DF5F83 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		0D4AA5A22F046CD200DF5F83 /* dailyStepsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = dailyStepsWidgetExtension.entitlements; sourceTree = "<group>"; };
+		65041F4D2F23F493002FC359 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		655DFF5E2F18128F00C97F8C /* StreakCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreakCalculator.swift; sourceTree = "<group>"; };
 		655DFF612F18189C00C97F8C /* CalendarGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarGridView.swift; sourceTree = "<group>"; };
 		655DFF642F187DC600C97F8C /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 		65A2A2872DB5BCA20007ACD4 = {
 			isa = PBXGroup;
 			children = (
+				65041F4D2F23F493002FC359 /* WelcomeView.swift */,
 				655DFF5D2F18109400C97F8C /* Shared */,
 				0D4AA5A22F046CD200DF5F83 /* dailyStepsWidgetExtension.entitlements */,
 				65A2A2922DB5BCA20007ACD4 /* dailySteps */,
@@ -396,6 +399,7 @@
 			files = (
 				655DFF5F2F18128F00C97F8C /* StreakCalculator.swift in Sources */,
 				655DFF662F187DC600C97F8C /* Theme.swift in Sources */,
+				65041F4E2F23F493002FC359 /* WelcomeView.swift in Sources */,
 				655DFF632F18189C00C97F8C /* CalendarGridView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

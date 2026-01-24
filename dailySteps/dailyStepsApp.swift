@@ -16,11 +16,42 @@ struct dailyStepsApp: App {
   
 
     @StateObject private var mainViewModel = MainViewModel()
+    
+    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+   
+    init(){
+#if DEBUG
+       // setupCloudKitmain()
+#endif
+    }
+    
+    func setupCloudKitmain() {
+        // Step 1: Check CloudKit is available
+        CloudKitManager.shared.checkAccountStatus { available, error in
+            if available {
+                print("✅ CloudKit available")
+                
+                // Step 2: Add references (runs once, safe to run multiple times)
+                CloudKitReferenceAdder.shared.addReferences()
+                
+                // That's it! Now go configure in dashboard
+            } else {
+                print("❌ CloudKit not available: \(error?.localizedDescription ?? "")")
+            }
+        }
+    }
+    
     var body: some Scene {
+        
+
         WindowGroup {
-            HomeView()
-                .environmentObject(mainViewModel)
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            if hasCompletedOnboarding {
+                HomeView()
+                    .environmentObject(mainViewModel)
+                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            } else {
+                WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            }
         }
         .onChange(of: scenePhase) {  oldPhase, newPhase in
             //any time the app goes to the background the steps will be saved

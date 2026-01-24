@@ -69,6 +69,8 @@ class MainViewModel : ObservableObject {
     
     init(){
 
+        
+      
         // Load persisted colors from App Group
         let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? PastelColor.blue.rawValue
         let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? PastelColor.mint.rawValue
@@ -107,7 +109,8 @@ class MainViewModel : ObservableObject {
         
         
      
-
+        // use it again later to create more challenges
+        //CloudKitManager.shared.createSampleChallenges()
         
         
     }

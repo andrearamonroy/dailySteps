@@ -19,8 +19,10 @@ struct PersistenceController {
     
     var sharedStoredURL : URL {
         
-        //force unwrap app group, this can make it crash if we ever delete the app group
-      let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.andrearamonroy.dailySteps")!
+        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.andrearamonroy.dailySteps") else {
+            fatalError("❌ App Group container not found. Check your App Groups capability in Xcode.")
+        }
+    
         return container.appendingPathComponent(databaseName)
     }
 

@@ -21,9 +21,9 @@ struct HomeView: View {
                         Label("Steps", systemImage: "figure.walk")
                     }
                 
-                StreakView()
+                ChallengesListView()
                     .tabItem {
-                        Label("Streak", systemImage: "bolt")
+                        Label("Challenges", systemImage: "bolt")
                     }
                 
                 StepGoalHistoryView()
