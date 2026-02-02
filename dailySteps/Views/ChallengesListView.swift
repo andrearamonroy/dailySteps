@@ -43,11 +43,19 @@ struct ChallengesListView: View {
     @State private var errorMessage: String?
     @EnvironmentObject private var mainViewModel: MainViewModel
     
+   
+    @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
+      private var backgroundColorString: String = BackgroundColor.sage.rawValue
+      
+      var backgroundColor: Color {
+          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.sage.color
+      }
+    
     var body: some View {
         NavigationView {
             ZStack {
-                Color(mainViewModel.backgroundColor.color)
-                    .ignoresSafeArea()
+               backgroundColor
+                      .ignoresSafeArea()
                 
                 if isLoading {
                     ProgressView("Loading challenges...")

@@ -56,13 +56,13 @@ class MainViewModel : ObservableObject {
     private let groupDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")!
 
         // MARK: - Theme Colors
-        @Published var primaryColor: PastelColor {
+        @Published var primaryColor: BackgroundColor {
             didSet { saveColors() }
         }
-        @Published var secondaryColor: PastelColor {
+        @Published var secondaryColor: BackgroundColor {
             didSet { saveColors() }
         }
-    @Published var backgroundColor: PastelColor {
+    @Published var backgroundColor: BackgroundColor {
         didSet { saveColors() }
     }
     
@@ -72,14 +72,14 @@ class MainViewModel : ObservableObject {
         
       
         // Load persisted colors from App Group
-        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? PastelColor.blue.rawValue
-        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? PastelColor.mint.rawValue
-        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? PastelColor.mint.rawValue
+        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? BackgroundColor.sage.rawValue
+        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? BackgroundColor.sage.rawValue
+        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? BackgroundColor.sage.rawValue
         
-        self.primaryColor = PastelColor(rawValue: primaryRaw) ?? .blue
-        self.secondaryColor = PastelColor(rawValue: secondaryRaw) ?? .mint
+        self.primaryColor = BackgroundColor(rawValue: primaryRaw) ?? .sage
+        self.secondaryColor = BackgroundColor(rawValue: secondaryRaw) ?? .sage
         
-        self.backgroundColor = PastelColor(rawValue: backgroundRaw) ?? .mint
+        self.backgroundColor = BackgroundColor(rawValue: backgroundRaw) ?? .sage
 
 
 
@@ -121,6 +121,7 @@ class MainViewModel : ObservableObject {
     private func saveColors() {
         groupDefaults.set(primaryColor.rawValue, forKey: "primaryColor")
         groupDefaults.set(secondaryColor.rawValue, forKey: "secondaryColor")
+        groupDefaults.set(backgroundColor.rawValue, forKey: "backgroundColor")
 
         // Tell widgets to refresh
         WidgetCenter.shared.reloadAllTimelines()
@@ -163,4 +164,10 @@ class MainViewModel : ObservableObject {
         }
     }
 
+}
+
+extension UserDefaults {
+    static let group: UserDefaults = {
+        UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") ?? .standard
+    }()
 }

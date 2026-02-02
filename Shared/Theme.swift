@@ -8,29 +8,64 @@
 import Foundation
 
 import SwiftUI
-
-enum PastelColor: String, CaseIterable, Identifiable {
-    case pink
-    case peach
-    case yellow
-    case mint
-    case teal
-    case blue
+enum BackgroundColor: String, CaseIterable, Identifiable {
+    case cloud
+    case blush
+    case gold
+    case sage
+    case sky
     case lavender
-    case gray
+    case pearl
+    case pistacho
 
     var id: String { rawValue }
 
+    var displayName: String {
+        switch self {
+        case .cloud: return "Cloud"
+        case .blush: return "Blush"
+        case .gold: return "Gold"
+        case .sage: return "Sage"
+        case .sky: return "Sky"
+        case .lavender: return "Lavender"
+        case .pearl: return "Pearl"
+        case .pistacho: return "Pistacho"
+        }
+    }
+
     var color: Color {
         switch self {
-        case .pink:      return Color(red: 1.0, green: 0.8, blue: 0.85)
-        case .peach:     return Color(red: 1.0, green: 0.85, blue: 0.7)
-        case .yellow:    return Color(red: 1.0, green: 0.95, blue: 0.7)
-        case .mint:      return Color(red: 0.8, green: 1.0, blue: 0.85)
-        case .teal:      return Color(red: 0.75, green: 0.95, blue: 0.9)
-        case .blue:      return Color(red: 0.8, green: 0.9, blue: 1.0)
-        case .lavender:  return Color(red: 0.9, green: 0.85, blue: 1.0)
-        case .gray:      return Color(red: 0.9, green: 0.9, blue: 0.9)
+        case .cloud:
+            // ▢ Soft gray-blue, visible
+            return Color(red: 0.88, green: 0.92, blue: 0.95)
+            
+        case .blush:
+            // ▢ Soft pink, clearly visible
+            return Color(red: 1.0, green: 0.85, blue: 0.90)
+            
+        case .gold:
+            // ▢ Warm beige, more saturated
+            return Color(red: 1.0, green: 0.92, blue: 0.70)
+            
+        case .sage:
+            // ▢ Muted green, visible pastel
+            return Color(red: 0.82, green: 0.92, blue: 0.84)
+            
+        case .sky:
+            // ▢ Soft blue, clearly visible
+            return Color(red: 0.80, green: 0.90, blue: 1.0)
+            
+        case .lavender:
+            // ▢ Soft purple, more visible
+            return Color(red: 0.88, green: 0.82, blue: 0.98)
+            
+        case .pearl:
+            // ▢ Cool gray, visible neutral
+            return Color(red: 0.87, green: 0.90, blue: 0.92)
+            
+        case .pistacho:
+            // ▢ Warm off-white, visible
+            return Color(red: 0.85, green: 0.95, blue: 0.78)
         }
     }
 }

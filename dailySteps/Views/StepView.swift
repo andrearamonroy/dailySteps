@@ -26,11 +26,18 @@ struct StepView: View {
         activeChallenge?["targetSteps"] as? Int
     }
     
+    @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
+      private var backgroundColorString: String = BackgroundColor.sage.rawValue
+      
+      var backgroundColor: Color {
+          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.sage.color
+      }
+    
     var body: some View {
         NavigationStack {
             ZStack {
                 // Background color
-                Color(.systemGroupedBackground)
+                backgroundColor
                     .ignoresSafeArea()
                 
                 ScrollView {

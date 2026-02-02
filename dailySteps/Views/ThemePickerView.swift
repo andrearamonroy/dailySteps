@@ -9,8 +9,8 @@ import SwiftUI
 
 
 struct ThemePickerView1: View {
-    @Binding var primary: PastelColor
-    @Binding var secondary: PastelColor
+    @Binding var primary: BackgroundColor
+    @Binding var secondary: BackgroundColor
 
     var body: some View {
         HStack(spacing: 16) {
@@ -25,9 +25,9 @@ struct ThemePickerView1: View {
         }
     }
 
-    private func colorSquare(for binding: Binding<PastelColor>) -> some View {
+    private func colorSquare(for binding: Binding<BackgroundColor>) -> some View {
         HStack {
-            ForEach(PastelColor.allCases, id: \.self) { color in
+            ForEach(BackgroundColor.allCases, id: \.self) { color in
                 Rectangle()
                     .fill(color.color)
                     .frame(width: 30, height: 30)
@@ -45,9 +45,9 @@ struct ThemePickerView1: View {
 
 struct ThemePickerView: View {
 
-    @Binding var primary: PastelColor
-    @Binding var secondary: PastelColor
-    @Binding var background: PastelColor
+    @Binding var primary: BackgroundColor
+    @Binding var secondary: BackgroundColor
+    @Binding var background: BackgroundColor
 
     private let columns = Array(
         repeating: GridItem(.fixed(40), spacing: 12),
@@ -56,52 +56,19 @@ struct ThemePickerView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-
-            Text("Primary Color")
-                .font(.headline)
-
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(PastelColor.allCases) { pastel in
-                    ColorSquare(
-                        color: pastel.color,
-                        isSelected: primary == pastel
-                    )
-                    .onTapGesture {
-                        primary = pastel
-                    }
-                }
-            }
-
-            Text("Secondary Color")
-                .font(.headline)
-
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(PastelColor.allCases) { pastel in
-                    ColorSquare(
-                        color: pastel.color,
-                        isSelected: secondary == pastel
-                    )
-                    .opacity(primary == pastel ? 0.4 : 1)
-                    .onTapGesture {
-                        guard pastel != primary else { return }
-                        secondary = pastel
-                    }
-                }
-            }
             
             Text("Background Color")
                 .font(.headline)
 
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(PastelColor.allCases) { pastel in
+                ForEach(BackgroundColor.allCases) { pastel in
                     ColorSquare(
                         color: pastel.color,
                         isSelected: background == pastel
                     )
                     .opacity(primary == pastel ? 0.4 : 1)
                     .onTapGesture {
-                        guard pastel != primary else { return }
-                        guard pastel != secondary else { return }
+                        
                         background = pastel
                     }
                 }
