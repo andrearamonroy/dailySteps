@@ -7,6 +7,7 @@
 
 import CloudKit
 import Foundation
+import UIKit
 
 // MARK: - CloudKit Configuration
 
@@ -26,6 +27,12 @@ class CloudKitManager : ObservableObject {
     
     /// Public database - stores shared data like challenges and friend requests
     let publicDatabase: CKDatabase
+    
+    // Cache
+        @Published var cachedChallenges: [CKRecord] = []
+        private var lastFetchDate: Date?
+        private let cacheExpirationInterval: TimeInterval = 300 // 5 minutes
+        
     
     // MARK: - Initialization
     
@@ -484,3 +491,445 @@ extension CloudKitManager {
     }
 }
 #endif
+extension CloudKitManager {
+    
+    // Get current device ID
+    private func getCurrentDeviceID() -> String {
+        if let savedDeviceID = UserDefaults.standard.string(forKey: FieldKey.UserProfile.deviceID) {
+            return savedDeviceID
+        }
+        let newDeviceID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        UserDefaults.standard.set(newDeviceID, forKey: FieldKey.UserProfile.deviceID)
+        return newDeviceID
+    }
+    
+    // Check if user has an active challenge (simplified - no User record needed)
+    func hasActiveChallenge(completion: @escaping (Result<Bool, Error>) -> Void) {
+        let deviceID = getCurrentDeviceID()
+        let predicate = NSPredicate(format: "deviceID == %@ AND \(FieldKey.ChallengeEnrollment.isActive) == YES", deviceID)
+        let query = CKQuery(recordType: "ChallengeEnrollment", predicate: predicate)
+        
+        privateDatabase.perform(query, inZoneWith: nil) { records, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                let hasActive = !(records?.isEmpty ?? true)
+                completion(.success(hasActive))
+            }
+        }
+    }
+    
+}
+extension CloudKitManager {
+    
+    /// Reference to HealthManager (set this from MainViewModel)
+    private static var healthManager: HealthManager?
+    
+    static func setHealthManager(_ manager: HealthManager) {
+        healthManager = manager
+    }
+    
+    /// Gets step count for a specific date range from HealthKit
+    private func getStepCount(
+        for startDate: Date,
+        to endDate: Date,
+        completion: @escaping (Int) -> Void
+    ) {
+        guard let healthManager = CloudKitManager.healthManager else {
+            print("⚠️ HealthManager not set in CloudKitManager")
+            completion(0)
+            return
+        }
+        
+        healthManager.getSteps(from: startDate, to: endDate, completion: completion)
+    }
+    
+    /// Fetches the user's current active enrollment and its associated challenge
+    func fetchActiveEnrollment(completion: @escaping (Result<(CKRecord, CKRecord), Error>) -> Void) {
+        let deviceID = getCurrentDeviceID()
+        
+        // Query for active enrollment for this device
+        let predicate = NSPredicate(format: "deviceID == %@ AND isActive == YES", deviceID)
+        let query = CKQuery(recordType: "ChallengeEnrollment", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
+        
+        publicDatabase.perform(query, inZoneWith: nil) { [weak self] records, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("❌ Error fetching active enrollment: \(error.localizedDescription)")
+                completion(.failure(error))
+                return
+            }
+            
+            guard let enrollment = records?.first else {
+                let noEnrollmentError = NSError(
+                    domain: "CloudKit",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "No active enrollment found"]
+                )
+                completion(.failure(noEnrollmentError))
+                return
+            }
+            
+            // Check if we should end this challenge due to missed goal
+            self.checkAndEndChallengeIfNeeded(enrollment: enrollment) { shouldContinue in
+                if !shouldContinue {
+                    // Challenge was ended, return failure
+                    let endedError = NSError(
+                        domain: "CloudKit",
+                        code: -2,
+                        userInfo: [NSLocalizedDescriptionKey: "Challenge ended due to missed goal"]
+                    )
+                    completion(.failure(endedError))
+                    return
+                }
+                
+                // Fetch the associated challenge
+                if let challengeReference = enrollment["challengeReference"] as? CKRecord.Reference {
+                    self.publicDatabase.fetch(withRecordID: challengeReference.recordID) { challenge, error in
+                        if let error = error {
+                            print("❌ Error fetching challenge: \(error.localizedDescription)")
+                            completion(.failure(error))
+                        } else if let challenge = challenge {
+                            print("✅ Fetched active challenge and enrollment")
+                            completion(.success((challenge, enrollment)))
+                        }
+                    }
+                } else {
+                    let noChallengeError = NSError(
+                        domain: "CloudKit",
+                        code: -3,
+                        userInfo: [NSLocalizedDescriptionKey: "No challenge reference found"]
+                    )
+                    completion(.failure(noChallengeError))
+                }
+            }
+        }
+    }
+    
+    /// Checks if the challenge should be ended due to a missed daily goal
+    private func checkAndEndChallengeIfNeeded(
+        enrollment: CKRecord,
+        completion: @escaping (Bool) -> Void
+    ) {
+        guard let startDate = enrollment["startDate"] as? Date,
+              let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference,
+              let lastCompletedDate = enrollment["lastCompletedDate"] as? Date? else {
+            // First day or can't check - continue
+            completion(true)
+            return
+        }
+        
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let enrollmentStartDay = calendar.startOfDay(for: startDate)
+        
+        // If enrolled today, don't check yet
+        if calendar.isDate(enrollmentStartDay, inSameDayAs: today) {
+            completion(true)
+            return
+        }
+        
+        // Check if there's a gap between last completed date and today
+        if let lastCompleted = lastCompletedDate {
+            let daysSinceLastCompleted = calendar.dateComponents([.day], from: calendar.startOfDay(for: lastCompleted), to: today).day ?? 0
+            
+            // If more than 1 day gap (meaning they missed yesterday), end challenge
+            if daysSinceLastCompleted > 1 {
+                print("❌ Gap detected: \(daysSinceLastCompleted) days since last completion. Ending challenge.")
+                self.endChallenge(enrollment: enrollment) { _ in
+                    completion(false)
+                }
+                return
+            }
+        }
+        
+        // Fetch the challenge to get target steps
+        publicDatabase.fetch(withRecordID: challengeRef.recordID) { [weak self] challenge, error in
+            guard let self = self,
+                  let challenge = challenge,
+                  let targetSteps = challenge["targetSteps"] as? Int else {
+                completion(true)
+                return
+            }
+            
+            // Check yesterday's steps
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+            let yesterdayStart = calendar.startOfDay(for: yesterday)
+            let yesterdayEnd = calendar.date(byAdding: .day, value: 1, to: yesterdayStart)!
+            
+            // Get yesterday's step count from HealthKit
+            self.getStepCount(for: yesterdayStart, to: yesterdayEnd) { steps in
+                if steps < targetSteps {
+                    // Missed goal yesterday - end the challenge
+                    print("❌ Goal not met yesterday (\(steps)/\(targetSteps) steps). Ending challenge.")
+                    self.endChallenge(enrollment: enrollment) { _ in
+                        completion(false)
+                    }
+                } else {
+                    // Goal was met, but update last completed date if needed
+                    print("✅ Yesterday's goal met (\(steps)/\(targetSteps) steps)")
+                    
+                    // Update last completed date to yesterday if it wasn't updated
+                    if lastCompletedDate == nil || !calendar.isDate(lastCompletedDate!, inSameDayAs: yesterday) {
+                        enrollment["lastCompletedDate"] = yesterday as CKRecordValue
+                        let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
+                        enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
+                        
+                        self.publicDatabase.save(enrollment) { _, _ in
+                            completion(true)
+                        }
+                    } else {
+                        completion(true)
+                    }
+                }
+            }
+        }
+    }
+    
+
+    // In CloudKitManager, after ending a challenge:
+    func endChallenge(
+        enrollment: CKRecord,
+        reason: String = "replaced",
+        completion: @escaping (Result<Void, Error>) -> Void
+    ) {
+        enrollment["isActive"] = false as CKRecordValue
+        enrollment["endedAt"] = Date() as CKRecordValue
+        enrollment["endReason"] = reason as CKRecordValue
+        
+        publicDatabase.save(enrollment) { savedRecord, error in
+            if let error = error {
+                print("❌ Error ending challenge: \(error.localizedDescription)")
+                completion(.failure(error))
+            } else {
+                print("✅ Challenge ended successfully (reason: \(reason))")
+                
+                // Post notification to refresh StepView
+                NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
+                
+                completion(.success(()))
+            }
+        }
+    }
+        
+    //KEEP
+        /// Updated enrollInChallenge to not check for active challenges (handled in UI)
+        func enrollInChallenge(
+            challenge: CKRecord,
+            enrollmentType: String,
+            groupID: String? = nil,
+            completion: @escaping (Result<CKRecord, Error>) -> Void
+        ) {
+            let deviceID = getCurrentDeviceID()
+            let username = UserDefaults.standard.string(forKey: FieldKey.UserProfile.username) ?? "Anonymous"
+            
+            let enrollmentRecord = CKRecord(recordType: "ChallengeEnrollment")
+            
+            enrollmentRecord["deviceID"] = deviceID as CKRecordValue
+            enrollmentRecord["username"] = username as CKRecordValue
+            enrollmentRecord["challengeReference"] = CKRecord.Reference(
+                record: challenge,
+                action: .deleteSelf
+            ) as CKRecordValue
+            enrollmentRecord["enrollmentType"] = enrollmentType as CKRecordValue
+            enrollmentRecord["startDate"] = Date() as CKRecordValue
+            enrollmentRecord["currentStreak"] = 0 as CKRecordValue
+            enrollmentRecord["totalDaysCompleted"] = 0 as CKRecordValue
+            
+            if let duration = challenge["duration"] as? Int {
+                let endDate = Calendar.current.date(byAdding: .day, value: duration, to: Date())
+                enrollmentRecord["expectedEndDate"] = endDate as! any CKRecordValue as CKRecordValue
+            }
+            
+            if let groupID = groupID {
+                enrollmentRecord["groupID"] = groupID as CKRecordValue
+            }
+            
+            enrollmentRecord["isActive"] = true as CKRecordValue
+            
+            print("📝 Creating enrollment for user: \(username) with deviceID: \(deviceID)")
+            
+            saveRecord(enrollmentRecord, to: .public) { result in
+                completion(result)
+            }
+        }
+    
+   
+        /// Update today's progress when goal is reached
+        func updateTodayProgress(stepCount: Int, completion: @escaping (Result<Void, Error>) -> Void) {
+            fetchActiveEnrollment { [weak self] result in
+                guard let self = self else { return }
+                
+                switch result {
+                case .success(let (challenge, enrollment)):
+                    guard let targetSteps = challenge["targetSteps"] as? Int,
+                          let duration = challenge["duration"] as? Int else {
+                        completion(.failure(NSError(
+                            domain: "CloudKit",
+                            code: -1,
+                            userInfo: [NSLocalizedDescriptionKey: "Invalid challenge data"]
+                        )))
+                        return
+                    }
+                    
+                    // Only update if goal is met today
+                    if stepCount >= targetSteps {
+                        let today = Calendar.current.startOfDay(for: Date())
+                        let lastCompleted = enrollment["lastCompletedDate"] as? Date
+                        
+                        // Only update if we haven't already marked today as complete
+                        if lastCompleted == nil || !Calendar.current.isDate(lastCompleted!, inSameDayAs: today) {
+                            let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
+                            let totalDays = (enrollment["totalDaysCompleted"] as? Int) ?? 0
+                            let newTotalDays = totalDays + 1
+                            
+                            enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
+                            enrollment["totalDaysCompleted"] = newTotalDays as CKRecordValue
+                            enrollment["lastCompletedDate"] = today as CKRecordValue
+                            
+                            // Check if challenge is now completed
+                            if newTotalDays >= duration {
+                                enrollment["isActive"] = false as CKRecordValue
+                                enrollment["endedAt"] = Date() as CKRecordValue
+                                enrollment["endReason"] = "completed" as CKRecordValue
+                                print("🎉 Challenge completed! \(newTotalDays)/\(duration) days")
+                            }
+                            
+                            self.publicDatabase.save(enrollment) { _, error in
+                                if let error = error {
+                                    completion(.failure(error))
+                                } else {
+                                    print("✅ Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
+                                    completion(.success(()))
+                                }
+                            }
+                        } else {
+                            // Already updated today
+                            completion(.success(()))
+                        }
+                    } else {
+                        // Goal not met yet
+                        completion(.success(()))
+                    }
+                    
+                case .failure(let error):
+                    completion(.failure(error))
+                }
+            }
+        }
+    
+}
+extension CloudKitManager {
+    /// Fetches all enrollments (active and completed) for the current user
+    func fetchAllEnrollments(completion: @escaping (Result<[CKRecord], Error>) -> Void) {
+        let deviceID = getCurrentDeviceID()
+        
+        let predicate = NSPredicate(format: "deviceID == %@", deviceID)
+        let query = CKQuery(recordType: "ChallengeEnrollment", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
+        
+        publicDatabase.perform(query, inZoneWith: nil) { records, error in
+            if let error = error {
+                print("❌ Error fetching enrollments: \(error.localizedDescription)")
+                completion(.failure(error))
+            } else if let records = records {
+                print("✅ Fetched \(records.count) enrollments")
+                completion(.success(records))
+            }
+        }
+    }
+}
+extension CloudKitManager {
+    /// Fetches all enrollments with their full challenge details
+    func fetchAllEnrollmentsWithChallengeDetails(completion: @escaping (Result<[EnrollmentWithChallenge], Error>) -> Void) {
+        let deviceID = getCurrentDeviceID()
+        
+        let predicate = NSPredicate(format: "deviceID == %@", deviceID)
+        let query = CKQuery(recordType: "ChallengeEnrollment", predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "startDate", ascending: false)]
+        
+        publicDatabase.perform(query, inZoneWith: nil) { [weak self] records, error in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("❌ Error fetching enrollments: \(error.localizedDescription)")
+                completion(.failure(error))
+                return
+            }
+            
+            guard let enrollments = records, !enrollments.isEmpty else {
+                print("ℹ️ No enrollments found")
+                completion(.success([]))
+                return
+            }
+            
+            print("📥 Fetched \(enrollments.count) enrollment records")
+            
+            // Fetch challenge details for each enrollment
+            let group = DispatchGroup()
+            var enrichedEnrollments: [EnrollmentWithChallenge] = []
+            
+            for enrollment in enrollments {
+                group.enter()
+                
+                guard let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference else {
+                    print("⚠️ No challenge reference for enrollment")
+                    group.leave()
+                    continue
+                }
+                
+                self.publicDatabase.fetch(withRecordID: challengeRef.recordID) { challenge, error in
+                    defer { group.leave() }
+                    
+                    if let error = error {
+                        print("❌ Error fetching challenge: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    guard let challenge = challenge else {
+                        print("⚠️ Challenge not found")
+                        return
+                    }
+                    
+                    let enriched = EnrollmentWithChallenge(from: enrollment, challenge: challenge)
+                    enrichedEnrollments.append(enriched)
+                    
+                    print("✅ Enriched enrollment: \(enriched.challengeName), active: \(enriched.isActive)")
+                }
+            }
+            
+            group.notify(queue: .main) {
+                print("✅ Total enriched enrollments: \(enrichedEnrollments.count)")
+                completion(.success(enrichedEnrollments))
+            }
+        }
+    }
+}
+
+// MARK: - Challenge Icon Helper
+extension CKRecord {
+    var challengeIconName: String {
+        guard let challengeID = self["challengeID"] as? String else {
+            return "challenge-10k-daily"
+        }
+        
+        let id = challengeID.lowercased()
+        if id.contains("10k") || id.contains("daily") {
+            return "challenge-10k-daily"
+        } else if id.contains("weekend") {
+            return "challenge-weekend-warrior"
+        } else if id.contains("marathon") {
+            return "challenge-marathon"
+        } else if id.contains("peak") {
+            return "challenge-peak-performance"
+        } else if id.contains("social") {
+            return "challenge-social"
+        } else if id.contains("streak") {
+            return "challenge-streak"
+        } else {
+            return "challenge-10k-daily"
+        }
+    }
+}

@@ -6,12 +6,8 @@
 //
 
 import SwiftUI
-// MARK: - Welcome Screen
 
-struct UserProfile {
-    static let username = "username"
-    static let deviceID = "deviceID"
-}
+// MARK: - Welcome Screen
 
 struct WelcomeView: View {
     @State private var username = ""
@@ -98,11 +94,11 @@ struct WelcomeView: View {
         }
         
         // Save username to UserDefaults
-        UserDefaults.standard.set(trimmedUsername, forKey: UserProfile.username)
+        UserDefaults.standard.set(trimmedUsername, forKey: FieldKey.UserProfile.username)
         
         // Save device ID
         let deviceID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        UserDefaults.standard.set(deviceID, forKey: UserProfile.deviceID)
+        UserDefaults.standard.set(deviceID, forKey: FieldKey.UserProfile.deviceID)
         
         // Mark onboarding as complete
         UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")

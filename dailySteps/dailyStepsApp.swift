@@ -18,6 +18,8 @@ struct dailyStepsApp: App {
     @StateObject private var mainViewModel = MainViewModel()
     
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    
+    @StateObject private var appState = AppState()
    
     init(){
 #if DEBUG
@@ -25,21 +27,7 @@ struct dailyStepsApp: App {
 #endif
     }
     
-    func setupCloudKitmain() {
-        // Step 1: Check CloudKit is available
-        CloudKitManager.shared.checkAccountStatus { available, error in
-            if available {
-                print("✅ CloudKit available")
-                
-                // Step 2: Add references (runs once, safe to run multiple times)
-                CloudKitReferenceAdder.shared.addReferences()
-                
-                // That's it! Now go configure in dashboard
-            } else {
-                print("❌ CloudKit not available: \(error?.localizedDescription ?? "")")
-            }
-        }
-    }
+  
     
     var body: some Scene {
         
@@ -49,6 +37,7 @@ struct dailyStepsApp: App {
                 HomeView()
                     .environmentObject(mainViewModel)
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(appState)
             } else {
                 WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
             }

@@ -41,11 +41,12 @@ struct ChallengesListView: View {
     @State private var challenges: [CKRecord] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @EnvironmentObject private var mainViewModel: MainViewModel
     
     var body: some View {
         NavigationView {
             ZStack {
-                Color(.systemGroupedBackground)
+                Color(mainViewModel.backgroundColor.color)
                     .ignoresSafeArea()
                 
                 if isLoading {
@@ -112,15 +113,17 @@ struct ChallengesListView: View {
                 }
             }
             .onAppear {
-                loadChallenges()
+                if challenges.isEmpty {
+                      loadChallenges() // Uses cache
+                  }
             }
             .refreshable {
-                loadChallenges()
+                loadChallenges(forceRefresh: true) // Bypasses cache
             }
         }
     }
     
-    private func loadChallenges() {
+    private func loadChallenges(forceRefresh: Bool = false) {
         isLoading = true
         errorMessage = nil
         
@@ -140,15 +143,17 @@ struct ChallengesListView: View {
 }
 
 // MARK: - Challenge Card View
-
 struct ChallengeCardView: View {
     let challenge: CKRecord
     
     var body: some View {
         HStack(spacing: 16) {
-            // Icon
-            Text(challengeEmoji)
-                .font(.system(size: 40))
+            // Custom Icon
+            Image(challenge.challengeIconName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 40, height: 40)
+                .foregroundColor(.blue) // Only works if "Template Image"
             
             // Content
             VStack(alignment: .leading, spacing: 6) {
@@ -164,12 +169,10 @@ struct ChallengeCardView: View {
                 
                 // Tags
                 HStack(spacing: 8) {
-                    // Duration tag
                     if let duration = challenge["duration"] as? Int {
                         TagView(text: "\(duration) Days", color: .blue)
                     }
                     
-                    // Steps tag
                     if let steps = challenge["targetSteps"] as? Int {
                         TagView(text: "\(formatSteps(steps)) steps per day", color: .gray)
                     }
@@ -179,7 +182,6 @@ struct ChallengeCardView: View {
             
             Spacer()
             
-            // Chevron
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.gray)
@@ -188,25 +190,6 @@ struct ChallengeCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 1)
-    }
-    
-    private var challengeEmoji: String {
-        let id = (challenge["challengeID"] as? String ?? "").lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return "🎯"
-        } else if id.contains("weekend") {
-            return "⚡️"
-        } else if id.contains("marathon") {
-            return "🏃"
-        } else if id.contains("peak") {
-            return "🔥"
-        } else if id.contains("social") {
-            return "👥"
-        } else if id.contains("streak") {
-            return "✨"
-        } else {
-            return "🎯"
-        }
     }
     
     private func formatSteps(_ steps: Int) -> String {
@@ -236,134 +219,336 @@ struct TagView: View {
 }
 
 // MARK: - Challenge Detail View
-
 struct ChallengeDetailView: View {
     let challenge: CKRecord
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var cloudKitManager = CloudKitManager.shared
     @State private var isFlipped = false
     @State private var showTutorial = true
+    @State private var isEnrolling = false
+    @State private var hasActiveChallenge = false
+    @State private var activeChallengeName: String?
+    @State private var showEnrolledMessage = false
+    @State private var showReplaceAlert = false
+    @State private var showDayRestrictionAlert = false
+    @State private var invalidDayMessage = ""
+    @EnvironmentObject var appState: AppState
+    
+    // Check if this challenge has day restrictions
+    var hasWeekdayRestriction: Bool {
+        guard let challengeID = challenge["challengeID"] as? String else { return false }
+        return challengeID.lowercased().contains("monday") ||
+               challengeID.lowercased().contains("tuesday") ||
+               challengeID.lowercased().contains("wednesday") ||
+               challengeID.lowercased().contains("thursday") ||
+               challengeID.lowercased().contains("friday") ||
+               challengeID.lowercased().contains("saturday") ||
+               challengeID.lowercased().contains("sunday") ||
+               challengeID.lowercased().contains("weekend")
+    }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Flip card
-                ZStack {
-                    // Back of card (Rules)
-                    CardBackView(challenge: challenge)
-                        .rotation3DEffect(
-                            .degrees(isFlipped ? 0 : 180),
-                            axis: (x: 0, y: 1, z: 0)
-                        )
-                        .opacity(isFlipped ? 1 : 0)
-                    
-                    // Front of card
-                    CardFrontView(challenge: challenge)
-                        .rotation3DEffect(
-                            .degrees(isFlipped ? 180 : 0),
-                            axis: (x: 0, y: 1, z: 0)
-                        )
-                        .opacity(isFlipped ? 0 : 1)
-                }
-                .frame(height: 500)
-                .onTapGesture {
-                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                        isFlipped.toggle()
-                        showTutorial = false
+        ZStack(alignment: .top) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Flip card
+                    ZStack {
+                        CardBackView(challenge: challenge)
+                            .rotation3DEffect(
+                                .degrees(isFlipped ? 0 : 180),
+                                axis: (x: 0, y: 1, z: 0)
+                            )
+                            .opacity(isFlipped ? 1 : 0)
+                        
+                        CardFrontView(challenge: challenge)
+                            .rotation3DEffect(
+                                .degrees(isFlipped ? 180 : 0),
+                                axis: (x: 0, y: 1, z: 0)
+                            )
+                            .opacity(isFlipped ? 0 : 1)
                     }
-                }
-                .overlay(
-                    // Tutorial hint
-                    Group {
-                        if showTutorial {
-                            ZStack {
-                                // Semi-transparent background
-                                Color.black.opacity(0.4)
-                                    .ignoresSafeArea()
-                                
-                                VStack(spacing: 16) {
-                                    Text("👆")
-                                        .font(.system(size: 50))
-                                        .scaleEffect(showTutorial ? 1.2 : 1.0)
-                                        .animation(
-                                            Animation.easeInOut(duration: 0.8)
-                                                .repeatForever(autoreverses: true),
-                                            value: showTutorial
-                                        )
+                    .frame(height: 500)
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                            isFlipped.toggle()
+                            showTutorial = false
+                        }
+                    }
+                    .overlay(
+                        Group {
+                            if showTutorial {
+                                ZStack {
+                                    Color.black.opacity(0.4)
+                                        .ignoresSafeArea()
                                     
-                                    Text("Tap to flip")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 12)
-                                        .background(
-                                            Capsule()
-                                                .fill(Color.blue)
-                                                .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 5)
-                                        )
+                                    VStack(spacing: 16) {
+                                        Text("👆")
+                                            .font(.system(size: 50))
+                                            .scaleEffect(showTutorial ? 1.2 : 1.0)
+                                            .animation(
+                                                Animation.easeInOut(duration: 0.8)
+                                                    .repeatForever(autoreverses: true),
+                                                value: showTutorial
+                                            )
+                                        
+                                        Text("Tap to flip")
+                                            .font(.headline)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 24)
+                                            .padding(.vertical, 12)
+                                            .background(
+                                                Capsule()
+                                                    .fill(Color.blue)
+                                                    .shadow(color: Color.blue.opacity(0.5), radius: 10, x: 0, y: 5)
+                                            )
+                                    }
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(Color.white)
+                                            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+                                    )
+                                    .padding(40)
                                 }
-                                .padding()
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color.white)
-                                        .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
-                                )
-                                .padding(40)
-                            }
-                            .transition(.opacity)
-                            .onTapGesture {
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                    showTutorial = false
+                                .transition(.opacity)
+                                .onTapGesture {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                        showTutorial = false
+                                    }
                                 }
                             }
                         }
-                    }
-                )
-                
-             
-                // Enroll buttons (outside the card)
-                VStack(spacing: 12) {
-                    Button(action: {
-                        print("Enrolling solo in: \(challenge["name"] as? String ?? "")")
-                    }) {
-                        HStack {
-                            Image(systemName: "person.fill")
-                            Text("Enroll Solo")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                    }
+                    )
                     
-                    Button(action: {
-                        print("Enrolling with friends in: \(challenge["name"] as? String ?? "")")
-                    }) {
-                        HStack {
-                            Image(systemName: "person.2.fill")
-                            Text("Enroll with Friends")
-                                .fontWeight(.semibold)
+                    // Enroll button
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            attemptEnrollment()
+                        }) {
+                            HStack {
+                                if isEnrolling {
+                                    ProgressView()
+                                        .tint(.white)
+                                } else {
+                                    Image(systemName: "person.fill")
+                                    Text("Enroll Solo")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.pink)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                        .disabled(isEnrolling)
+                        
+                        if hasActiveChallenge, let name = activeChallengeName {
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle.fill")
+                                    .foregroundColor(.orange)
+                                Text("Currently enrolled in: \(name)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.top, 4)
+                        }
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                }
+                .padding(.top)
+            }
+            
+            // Success message banner at top
+            if showEnrolledMessage {
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white)
+                        
+                        Text("Successfully Enrolled!")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                    .background(Color.green)
+                    .cornerRadius(12)
+                    .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 5)
                 }
                 .padding(.horizontal)
-                .padding(.bottom)
+                .padding(.top, 8)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(1)
             }
-            .padding(.top)
         }
         .background(Color(.systemGroupedBackground))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            checkForActiveChallenge()
+        }
+        .alert("Replace Current Challenge?", isPresented: $showReplaceAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Replace", role: .destructive) {
+                replaceChallenge()
+            }
+        } message: {
+            if let name = activeChallengeName {
+                Text("You're currently enrolled in '\(name)'. Do you want to end it and start this new challenge?")
+            }
+        }
+        .alert("Cannot Enroll", isPresented: $showDayRestrictionAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(invalidDayMessage)
+        }
+    }
+    
+    private func checkForActiveChallenge() {
+        cloudKitManager.fetchActiveEnrollment { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let (challenge, _)):
+                    self.hasActiveChallenge = true
+                    self.activeChallengeName = challenge["name"] as? String
+                case .failure:
+                    self.hasActiveChallenge = false
+                    self.activeChallengeName = nil
+                }
+            }
+        }
+    }
+    
+    private func attemptEnrollment() {
+        // Check if challenge has weekday restrictions
+        if !isValidDayForEnrollment() {
+            showDayRestrictionAlert = true
+            return
+        }
+        
+        // Check if user has active challenge
+        if hasActiveChallenge {
+            showReplaceAlert = true
+        } else {
+            enrollSolo()
+        }
+    }
+    
+    private func isValidDayForEnrollment() -> Bool {
+        guard let challengeID = challenge["challengeID"] as? String else { return true }
+        
+        let today = Calendar.current.component(.weekday, from: Date())
+        let challengeIDLower = challengeID.lowercased()
+        
+        // Check for specific day restrictions
+        if challengeIDLower.contains("monday") {
+            if today != 2 { // Monday is 2 in Calendar.current
+                invalidDayMessage = "This challenge can only be started on Mondays."
+                return false
+            }
+        } else if challengeIDLower.contains("tuesday") {
+            if today != 3 {
+                invalidDayMessage = "This challenge can only be started on Tuesdays."
+                return false
+            }
+        } else if challengeIDLower.contains("wednesday") {
+            if today != 4 {
+                invalidDayMessage = "This challenge can only be started on Wednesdays."
+                return false
+            }
+        } else if challengeIDLower.contains("thursday") {
+            if today != 5 {
+                invalidDayMessage = "This challenge can only be started on Thursdays."
+                return false
+            }
+        } else if challengeIDLower.contains("friday") {
+            if today != 6 {
+                invalidDayMessage = "This challenge can only be started on Fridays."
+                return false
+            }
+        } else if challengeIDLower.contains("saturday") {
+            if today != 7 {
+                invalidDayMessage = "This challenge can only be started on Saturdays."
+                return false
+            }
+        } else if challengeIDLower.contains("sunday") {
+            if today != 1 {
+                invalidDayMessage = "This challenge can only be started on Sundays."
+                return false
+            }
+        } else if challengeIDLower.contains("weekend") {
+            if today != 7 && today != 1 { // Saturday or Sunday
+                invalidDayMessage = "This challenge can only be started on weekends (Saturday or Sunday)."
+                return false
+            }
+        }
+        
+        return true
+    }
+    
+    private func replaceChallenge() {
+        isEnrolling = true
+        
+        // First, end the current challenge
+        cloudKitManager.fetchActiveEnrollment { [self] result in
+            switch result {
+            case .success(let (_, enrollment)):
+                cloudKitManager.endChallenge(enrollment: enrollment) { endResult in
+                    switch endResult {
+                    case .success:
+                        // Now enroll in the new challenge
+                        self.enrollSolo()
+                    case .failure(let error):
+                        DispatchQueue.main.async {
+                            self.isEnrolling = false
+                            print("❌ Error ending previous challenge: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.isEnrolling = false
+                    print("❌ Error fetching active challenge: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    private func enrollSolo() {
+        isEnrolling = true
+        
+        cloudKitManager.enrollInChallenge(
+            challenge: challenge,
+            enrollmentType: "solo",
+            groupID: nil
+        ) { result in
+            DispatchQueue.main.async {
+                isEnrolling = false
+                
+                switch result {
+                case .success:
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        showEnrolledMessage = true
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        dismiss()
+                        appState.shouldNavigateToStepView = true
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Error enrolling: \(error.localizedDescription)")
+                }
+            }
+        }
     }
 }
 
 // MARK: - Card Front View
-
 struct CardFrontView: View {
     let challenge: CKRecord
     
@@ -371,8 +556,12 @@ struct CardFrontView: View {
         VStack(spacing: 0) {
             // Top colored section
             VStack(spacing: 16) {
-                Text(challengeEmoji)
-                    .font(.system(size: 80))
+                // Custom Icon
+                Image(challenge.challengeIconName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .foregroundColor(.white) // Tint color
                 
                 Text(challenge["name"] as? String ?? "Challenge")
                     .font(.title)
@@ -391,37 +580,7 @@ struct CardFrontView: View {
             .padding(.vertical, 40)
             .background(cardGradient)
             
-            // Bottom white section
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("GOAL")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                    
-                    if let steps = challenge["targetSteps"] as? Int {
-                        Text("\(formatSteps(steps)) steps per day")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                    }
-                }
-                
-                Divider()
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("ABOUT")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                    
-                    Text(challenge["description"] as? String ?? "")
-                        .font(.body)
-                        .foregroundColor(.primary)
-                }
-            }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
+            // ... rest of the card
         }
         .frame(maxWidth: .infinity)
         .cornerRadius(20)
@@ -439,26 +598,7 @@ struct CardFrontView: View {
             return LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }
-    
-    private var challengeEmoji: String {
-        let id = (challenge["challengeID"] as? String ?? "").lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return "🎯"
-        } else if id.contains("weekend") {
-            return "⚡️"
-        } else {
-            return "🎯"
-        }
-    }
-    
-    private func formatSteps(_ steps: Int) -> String {
-        if steps >= 1000 {
-            return "\(steps / 1000),\(String(format: "%03d", steps % 1000))"
-        }
-        return "\(steps)"
-    }
 }
-
 // MARK: - Card Back View
 
 struct CardBackView: View {

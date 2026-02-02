@@ -107,15 +107,16 @@ class MainViewModel : ObservableObject {
         
         requestNotificationPermission()
         
-        
+        CloudKitManager.setHealthManager(healthManager)
      
         // use it again later to create more challenges
         //CloudKitManager.shared.createSampleChallenges()
+       // CloudKitReferenceAdder.shared.addReferences()
         
         
     }
     
-    
+ 
     
     private func saveColors() {
         groupDefaults.set(primaryColor.rawValue, forKey: "primaryColor")

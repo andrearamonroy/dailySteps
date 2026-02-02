@@ -308,3 +308,35 @@ class HealthManager: ObservableObject {
     }
 }
 
+extension HealthManager {
+    /// Gets step count for a specific date range
+    func getSteps(from startDate: Date, to endDate: Date, completion: @escaping (Int) -> Void) {
+        guard let stepType = stepType else {
+            completion(0)
+            return
+        }
+        
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startDate,
+            end: endDate,
+            options: .strictStartDate
+        )
+        
+        let query = HKStatisticsQuery(
+            quantityType: stepType,
+            quantitySamplePredicate: predicate,
+            options: .cumulativeSum
+        ) { _, result, error in
+            if let error = error {
+                print("❌ Error fetching steps: \(error.localizedDescription)")
+                completion(0)
+                return
+            }
+            
+            let steps = result?.sumQuantity()?.doubleValue(for: .count()) ?? 0
+            completion(Int(steps.rounded(.down)))
+        }
+        
+        healthStore.execute(query)
+    }
+}

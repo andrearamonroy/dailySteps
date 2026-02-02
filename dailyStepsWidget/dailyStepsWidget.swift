@@ -113,7 +113,9 @@ struct dailyStepsWidgetEntryView : View {
     let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
     var body: some View {
-        HStack {
+        
+        Text("in dev")
+        /*HStack {
             VStack {
                 Text("\(entry.streak)")
                     .font(.system(size: 70, design: .rounded))
@@ -131,7 +133,7 @@ struct dailyStepsWidgetEntryView : View {
                 CalendarGridView(days: entry.days, today: entry.date)
             }
             .padding(.leading)
-        }
+        }*/
     }
 }
 
