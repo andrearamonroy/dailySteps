@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "dailySteps.png",
+      "filename" : "dailySteps-3.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "dailySteps@2x.png",
+      "filename" : "dailySteps-3@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "dailySteps@3x.png",
+      "filename" : "dailySteps-3@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

@@ -134,28 +134,38 @@ struct StepView: View {
                         WeeklyStepsView()
                         
                         // Active Challenge Section (moved to bottom)
-                        if isLoadingChallenge || activeChallenge != nil || enrollment != nil {
+                        // Active Challenge Section OR Enrollment Prompt
+                        if isLoadingChallenge {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Active Challenge")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .padding(.horizontal)
                                 
-                                if isLoadingChallenge {
-                                    ProgressView()
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                } else if let challenge = activeChallenge, let enrollmentRecord = enrollment {
-                                    ActiveChallengeCardView(
-                                        challenge: challenge,
-                                        enrollment: enrollmentRecord,
-                                        currentSteps: mainViewModel.healthManager.stepCount
-                                    )
-                                } else {
-                                    EmptyActiveChallengeView()
-                                }
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
                             }
                             .padding(.bottom)
+                        } else if let challenge = activeChallenge, let enrollmentRecord = enrollment {
+                            // Has active challenge - show challenge card
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Active Challenge")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .padding(.horizontal)
+                                
+                                ActiveChallengeCardView(
+                                    challenge: challenge,
+                                    enrollment: enrollmentRecord,
+                                    currentSteps: mainViewModel.healthManager.stepCount
+                                )
+                            }
+                            .padding(.bottom)
+                        } else {
+                            // No active challenge - show enrollment prompt
+                            EnrollmentPromptView()
+                                .padding(.bottom)
                         }
                     }
                 }
@@ -694,4 +704,96 @@ struct EmptyActiveChallengeView: View {
 #Preview {
     StepView()
         .environmentObject(MainViewModel())
+}
+// MARK: - Enrollment Prompt View
+struct EnrollmentPromptView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Join a Challenge")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .padding(.horizontal)
+            
+            NavigationLink(destination: ChallengesListView()) {
+                VStack(spacing: 16) {
+                    // Icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color(red: 0.4, green: 0.7, blue: 1.0),
+                                        Color(red: 0.7, green: 0.5, blue: 1.0)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(spacing: 8) {
+                        Text("Ready for a Challenge?")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                        
+                        Text("Push yourself further and track your progress with daily step challenges")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    
+                    // Call to action button
+                    HStack {
+                        Text("Browse Challenges")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color(red: 0.4, green: 0.7, blue: 1.0),
+                                Color(red: 0.7, green: 0.5, blue: 1.0)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(12)
+                }
+                .padding(32)
+                .frame(maxWidth: .infinity)
+                .background(Color(.systemBackground))
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.4, green: 0.7, blue: 1.0).opacity(0.3),
+                                    Color(red: 0.7, green: 0.5, blue: 1.0).opacity(0.3)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2
+                        )
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal)
+        }
+    }
 }

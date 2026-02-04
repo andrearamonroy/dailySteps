@@ -28,6 +28,16 @@ struct LetteringView: View {
                    // Typewriter text
                    Text(displayedText)
                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                       .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.3, green: 0.5, blue: 0.9),
+                                            Color(red: 0.9, green: 0.5, blue: 0.6)   
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
                }
                .onAppear {
                    typeText()
