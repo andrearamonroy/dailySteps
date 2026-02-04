@@ -7,9 +7,22 @@
 
 import SwiftUI
 import CloudKit
-// MARK: - Fetch Challenges
+
+// MARK: - CloudKit Manager Extension for Account Status
 
 extension CloudKitManager {
+    
+    /// Checks if the user is logged into their iCloud account
+    /// - Parameter completion: Callback with account status result
+    func checkAccountStatus(completion: @escaping (Result<CKAccountStatus, Error>) -> Void) {
+        CKContainer.default().accountStatus { status, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(status))
+            }
+        }
+    }
     
     /// Fetches all challenges from the public database
     /// - Parameter completion: Callback with array of challenge records or error
@@ -160,7 +173,7 @@ struct ChallengeCardView: View {
             Image(challenge.challengeIconName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 40, height: 40)
+                .frame(width: 80, height: 80)
                 .foregroundColor(.blue) // Only works if "Template Image"
             
             // Content
@@ -239,6 +252,7 @@ struct ChallengeDetailView: View {
     @State private var showEnrolledMessage = false
     @State private var showReplaceAlert = false
     @State private var showDayRestrictionAlert = false
+    @State private var showAppleAccountAlert = false
     @State private var invalidDayMessage = ""
     @EnvironmentObject var appState: AppState
     
@@ -414,6 +428,16 @@ struct ChallengeDetailView: View {
         } message: {
             Text(invalidDayMessage)
         }
+        .alert("Apple Account Required", isPresented: $showAppleAccountAlert) {
+            Button("Open Settings", role: .none) {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("To enroll in a challenge, please log into your Apple account in Settings. This is required to save your progress to iCloud.")
+        }
     }
     
     private func checkForActiveChallenge() {
@@ -432,6 +456,51 @@ struct ChallengeDetailView: View {
     }
     
     private func attemptEnrollment() {
+        // First, check if user is logged into iCloud
+        cloudKitManager.checkAccountStatus { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let status):
+                    switch status {
+                    case .available:
+                        // User is logged in, proceed with enrollment checks
+                        proceedWithEnrollmentChecks()
+                        
+                    case .noAccount:
+                        // User is not logged into iCloud
+                        showAppleAccountAlert = true
+                        
+                    case .restricted:
+                        // Account is restricted (parental controls, etc.)
+                        invalidDayMessage = "Your Apple account has restrictions that prevent enrollment. Please check your device settings."
+                        showDayRestrictionAlert = true
+                        
+                    case .couldNotDetermine:
+                        // Could not determine account status
+                        invalidDayMessage = "Unable to verify your Apple account status. Please check your internet connection and try again."
+                        showDayRestrictionAlert = true
+                        
+                    case .temporarilyUnavailable:
+                        // iCloud is temporarily unavailable
+                        invalidDayMessage = "iCloud is temporarily unavailable. Please try again in a few moments."
+                        showDayRestrictionAlert = true
+                        
+                    @unknown default:
+                        // Future cases
+                        invalidDayMessage = "Unable to verify your Apple account. Please try again."
+                        showDayRestrictionAlert = true
+                    }
+                    
+                case .failure(let error):
+                    // Error checking account status
+                    invalidDayMessage = "Error verifying Apple account: \(error.localizedDescription)"
+                    showDayRestrictionAlert = true
+                }
+            }
+        }
+    }
+    
+    private func proceedWithEnrollmentChecks() {
         // Check if challenge has weekday restrictions
         if !isValidDayForEnrollment() {
             showDayRestrictionAlert = true
@@ -568,7 +637,7 @@ struct CardFrontView: View {
                 Image(challenge.challengeIconName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 80, height: 80)
+                    .frame(width: 150, height: 150)
                     .foregroundColor(.white) // Tint color
                 
                 Text(challenge["name"] as? String ?? "Challenge")
@@ -585,10 +654,44 @@ struct CardFrontView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 40)
+            .padding(.vertical, 10)
             .background(cardGradient)
             
             // ... rest of the card
+            
+            VStack(spacing: 12) {
+                
+                Text("\(challenge["description"] as? String ?? "")")
+                    .font(.caption)
+                    .padding()
+                
+                HStack(spacing: 40) {
+                    VStack(spacing: 4) {
+                        Text("🎯")
+                            .font(.system(size: 32))
+                        Text("\(formatSteps(challenge["targetSteps"] as? Int ?? 0))")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("steps/day")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    VStack(spacing: 4) {
+                        Text("📅")
+                            .font(.system(size: 32))
+                        Text("\(challenge["duration"] as? Int ?? 0)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                        Text("days")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.vertical, 20)
+            .frame(maxWidth: .infinity)
+            .background(Color.white)
         }
         .frame(maxWidth: .infinity)
         .cornerRadius(20)
@@ -602,9 +705,39 @@ struct CardFrontView: View {
             return LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
         } else if id.contains("weekend") {
             return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        } else {
+        }
+        else if id.contains("freedom") {
+           return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("sunday") {
+            return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("saturday") {
+            return LinearGradient(colors: [Color.mint, Color.green], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("thrusday") {
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        
+        else if id.contains("wednesday") {
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("10k-everyday") {
+            return LinearGradient(colors: [Color.pink, Color.red], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("7k-everyday") {
+            return LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else {
             return LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
+    }
+    
+    private func formatSteps(_ steps: Int) -> String {
+        if steps >= 1000 {
+            return "\(steps / 1000),\(String(format: "%03d", steps % 1000))"
+        }
+        return "\(steps)"
     }
 }
 // MARK: - Card Back View
@@ -655,7 +788,30 @@ struct CardBackView: View {
             return LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
         } else if id.contains("weekend") {
             return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        } else {
+        }
+        else if id.contains("freedom") {
+           return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("sunday") {
+            return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("saturday") {
+            return LinearGradient(colors: [Color.mint, Color.green], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("thrusday") {
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        
+        else if id.contains("wednesday") {
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("10k-everyday") {
+            return LinearGradient(colors: [Color.pink, Color.red], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else if id.contains("7k-everyday") {
+            return LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+       }
+        else {
             return LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
     }

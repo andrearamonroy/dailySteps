@@ -239,22 +239,38 @@ struct ChallengeGoalBanner: View {
     
     var challengeIconName: String {
         let id = challengeID.lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return "challenge-10k-daily"
-        } else if id.contains("weekend") {
-            return "challenge-weekend-warrior"
-        } else if id.contains("marathon") {
-            return "challenge-marathon"
-        } else if id.contains("peak") {
-            return "challenge-peak-performance"
-        } else if id.contains("social") {
-            return "challenge-social"
-        } else if id.contains("streak") {
-            return "challenge-streak"
-        } else {
+        if id.contains("10k-monday"){
+            return "10kMonday"
+        } else if id.contains("weekend-warrior") {
+            return "weekendWarrior"
+        } else if id.contains("freedom-friday") {
+            return "freedomFriday"
+        } else if id.contains("steady-sunday") {
+            return "steadySunday"
+        } else if id.contains("super-saturday") {
+            return "superSaturday"
+        } else if id.contains("thirsty-thursday") {
+            return "thursday"
+        } else if id.contains("turbo-tuesday") {
+            return "turboTuesday"
+        } else if id.contains("10k-everyday") {
+            return "10kEveryday"
+        }else if id.contains("7k-everyday") {
+           return "7kEveryday"
+       }
+        else if id.contains("wellness-wednesday") {
+           return "wellnesWed"
+       }
+
+        
+        //change later to app's icon to default
+        else {
             return "challenge-10k-daily"
         }
+
+
     }
+
     
     var body: some View {
         VStack(spacing: 12) {
@@ -433,7 +449,7 @@ struct ActiveChallengeCardView: View {
                 Image(challenge.challengeIconName)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 32, height: 32)
+                    .frame(width: 40, height: 40)
                     .foregroundColor(.blue)
                 
                 VStack(alignment: .leading, spacing: 4) {

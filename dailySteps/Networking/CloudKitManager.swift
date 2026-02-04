@@ -43,9 +43,9 @@ class CloudKitManager : ObservableObject {
             self.privateDatabase = container.privateCloudDatabase
             self.publicDatabase = container.publicCloudDatabase
             
-            print("✅ CloudKit container initialized successfully")
+            print("CloudKit container initialized successfully")
         } catch {
-            print("❌ CloudKit initialization failed: \(error)")
+            print("CloudKit initialization failed: \(error)")
             fatalError("CloudKit setup failed")
         }
     }
@@ -56,28 +56,28 @@ class CloudKitManager : ObservableObject {
     func checkAccountStatus(completion: @escaping (Bool, Error?) -> Void) {
         container.accountStatus { status, error in
             if let error = error {
-                print("❌ CloudKit account error: \(error.localizedDescription)")
+                print("CloudKit account error: \(error.localizedDescription)")
                 completion(false, error)
                 return
             }
             
             switch status {
             case .available:
-                print("✅ CloudKit account available")
+                print("CloudKit account available")
              
                 
                 completion(true, nil)
             case .noAccount:
-                print("⚠️ No iCloud account")
+                print("No iCloud account")
                 completion(false, NSError(domain: "CloudKit", code: 1, userInfo: [NSLocalizedDescriptionKey: "Please sign in to iCloud"]))
             case .restricted:
-                print("⚠️ iCloud account restricted")
+                print("iCloud account restricted")
                 completion(false, NSError(domain: "CloudKit", code: 2, userInfo: [NSLocalizedDescriptionKey: "iCloud access is restricted"]))
             case .couldNotDetermine:
-                print("⚠️ Could not determine iCloud status")
+                print("Could not determine iCloud status")
                 completion(false, NSError(domain: "CloudKit", code: 3, userInfo: [NSLocalizedDescriptionKey: "Could not determine iCloud status"]))
             case .temporarilyUnavailable:
-                print("⚠️ iCloud temporarily unavailable")
+                print("iCloud temporarily unavailable")
                 completion(false, NSError(domain: "CloudKit", code: 4, userInfo: [NSLocalizedDescriptionKey: "iCloud is temporarily unavailable"]))
             @unknown default:
                 completion(false, NSError(domain: "CloudKit", code: 5, userInfo: [NSLocalizedDescriptionKey: "Unknown iCloud status"]))
@@ -355,10 +355,10 @@ extension CloudKitManager {
         
         db.save(record) { savedRecord, error in
             if let error = error {
-                print("❌ Error saving \(record.recordType): \(error.localizedDescription)")
+                print("Error saving \(record.recordType): \(error.localizedDescription)")
                 completion(.failure(error))
             } else if let savedRecord = savedRecord {
-                print("✅ Saved \(record.recordType) successfully")
+                print("Saved \(record.recordType) successfully")
                 completion(.success(savedRecord))
             }
         }
@@ -380,10 +380,10 @@ extension CloudKitManager {
         
         db.fetch(withRecordID: recordID) { record, error in
             if let error = error {
-                print("❌ Error fetching record: \(error.localizedDescription)")
+                print("Error fetching record: \(error.localizedDescription)")
                 completion(.failure(error))
             } else if let record = record {
-                print("✅ Fetched record successfully")
+                print("Fetched record successfully")
                 completion(.success(record))
             }
         }
@@ -405,10 +405,10 @@ extension CloudKitManager {
         
         db.delete(withRecordID: recordID) { deletedID, error in
             if let error = error {
-                print("❌ Error deleting record: \(error.localizedDescription)")
+                print("Error deleting record: \(error.localizedDescription)")
                 completion(.failure(error))
             } else if let deletedID = deletedID {
-                print("✅ Deleted record successfully")
+                print("Deleted record successfully")
                 completion(.success(deletedID))
             }
         }
@@ -432,7 +432,7 @@ extension CloudKitManager {
     func createSampleChallenges() {
         checkAccountStatus { [weak self] available, error in
             guard available, let self = self else {
-                print("❌ CloudKit not available")
+                print("CloudKit not available")
                 return
             }
             
@@ -469,22 +469,116 @@ extension CloudKitManager {
                 restDays: 0
             )
             
+            
+            /*
+            
+             
+             */
+            
+            // Challenge 4: 10K everyday
+            let challenge4 = self.createChallengeRecord(
+                challengeID: "10k-everyday",
+                name: "10K Everyday",
+                description: "Walk 10,000 steps every day for a week",
+                targetSteps: 10000,
+                daysRequired: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                duration: 7,
+                restDays: 0
+            )
+            
+            //freedom friday
+            let challenge5 = self.createChallengeRecord(
+                challengeID: "freedom-friday",
+                name: "Freedom Friday",
+                description: "Finish the week with 10k steps",
+                targetSteps: 10000,
+                daysRequired: ["Friday"],
+                duration: 1,
+                restDays: 0
+            )
+            
+            //steady sunday
+            let challenge6 = self.createChallengeRecord(
+                challengeID: "steady-sunday",
+                name: "Steady Sunday",
+                description: "Active recovery day",
+                targetSteps: 7000,
+                daysRequired: ["Sunday"],
+                duration: 1,
+                restDays: 0
+            )
+            
+            //super-sat
+            let challenge7 = self.createChallengeRecord(
+                challengeID: "super-saturday",
+                name: "Super Saturday",
+                description: "Go big",
+                targetSteps: 20000,
+                daysRequired: ["Saturday"],
+                duration: 1,
+                restDays: 0
+            )
+            
+            //turbo tuesday
+            let challenge8 = self.createChallengeRecord(
+                challengeID: "turbo-tuesday",
+                name: "Turbo Tuesday",
+                description: "Celebrate Monday is over! Get in 12k steps",
+                targetSteps: 12000,
+                daysRequired: ["Tuesday"],
+                duration: 1,
+                restDays: 0
+            )
+            
+            //wellnes-wed
+            let challenge9 = self.createChallengeRecord(
+                challengeID: "wellness-wednesday",
+                name: "Wellness Wednesday",
+                description: "Keep the momentum with 8,000 steps",
+                targetSteps: 8000,
+                daysRequired: ["Wednesday"],
+                duration: 1,
+                restDays: 0
+            )
+            
+            
+            
+            
             // Save challenges to public database
-            self.saveRecord(challenge1, to: .public) { result in
+            self.saveRecord(challenge4, to: .public) { result in
                 if case .success = result {
-                    print("✅ Created '7K Everyday' challenge")
+                    print("Created '10k ewveryday' challenge")
                 }
             }
             
-            self.saveRecord(challenge2, to: .public) { result in
+            self.saveRecord(challenge5, to: .public) { result in
                 if case .success = result {
-                    print("✅ Created 'Weekend Warrior' challenge")
+                    print("Created 'freedom friday' challenge")
                 }
             }
             
-            self.saveRecord(challenge3, to: .public) { result in
+            self.saveRecord(challenge6, to: .public) { result in
                 if case .success = result {
-                    print("✅ Created '10K Monday' challenge")
+                    print("Created 'steady-sunday' challenge")
+                }
+            }
+            
+            
+            self.saveRecord(challenge7, to: .public) { result in
+                if case .success = result {
+                    print("Created 'super-sat' challenge")
+                }
+            }
+            
+            self.saveRecord(challenge8, to: .public) { result in
+                if case .success = result {
+                    print("Created 'turbo-tuesday' challenge")
+                }
+            }
+            
+            self.saveRecord(challenge9, to: .public) { result in
+                if case .success = result {
+                    print("Created 'wellnes wed' challenge")
                 }
             }
         }
@@ -536,7 +630,7 @@ extension CloudKitManager {
         completion: @escaping (Int) -> Void
     ) {
         guard let healthManager = CloudKitManager.healthManager else {
-            print("⚠️ HealthManager not set in CloudKitManager")
+            print(" HealthManager not set in CloudKitManager")
             completion(0)
             return
         }
@@ -557,7 +651,7 @@ extension CloudKitManager {
             guard let self = self else { return }
             
             if let error = error {
-                print("❌ Error fetching active enrollment: \(error.localizedDescription)")
+                print("Error fetching active enrollment: \(error.localizedDescription)")
                 completion(.failure(error))
                 return
             }
@@ -589,10 +683,10 @@ extension CloudKitManager {
                 if let challengeReference = enrollment["challengeReference"] as? CKRecord.Reference {
                     self.publicDatabase.fetch(withRecordID: challengeReference.recordID) { challenge, error in
                         if let error = error {
-                            print("❌ Error fetching challenge: \(error.localizedDescription)")
+                            print(" Error fetching challenge: \(error.localizedDescription)")
                             completion(.failure(error))
                         } else if let challenge = challenge {
-                            print("✅ Fetched active challenge and enrollment")
+                            print("Fetched active challenge and enrollment")
                             completion(.success((challenge, enrollment)))
                         }
                     }
@@ -637,7 +731,7 @@ extension CloudKitManager {
             
             // If more than 1 day gap (meaning they missed yesterday), end challenge
             if daysSinceLastCompleted > 1 {
-                print("❌ Gap detected: \(daysSinceLastCompleted) days since last completion. Ending challenge.")
+                print("Gap detected: \(daysSinceLastCompleted) days since last completion. Ending challenge.")
                 self.endChallenge(enrollment: enrollment) { _ in
                     completion(false)
                 }
@@ -663,13 +757,13 @@ extension CloudKitManager {
             self.getStepCount(for: yesterdayStart, to: yesterdayEnd) { steps in
                 if steps < targetSteps {
                     // Missed goal yesterday - end the challenge
-                    print("❌ Goal not met yesterday (\(steps)/\(targetSteps) steps). Ending challenge.")
+                    print(" Goal not met yesterday (\(steps)/\(targetSteps) steps). Ending challenge.")
                     self.endChallenge(enrollment: enrollment) { _ in
                         completion(false)
                     }
                 } else {
                     // Goal was met, but update last completed date if needed
-                    print("✅ Yesterday's goal met (\(steps)/\(targetSteps) steps)")
+                    print(" Yesterday's goal met (\(steps)/\(targetSteps) steps)")
                     
                     // Update last completed date to yesterday if it wasn't updated
                     if lastCompletedDate == nil || !calendar.isDate(lastCompletedDate!, inSameDayAs: yesterday) {
@@ -701,10 +795,10 @@ extension CloudKitManager {
         
         publicDatabase.save(enrollment) { savedRecord, error in
             if let error = error {
-                print("❌ Error ending challenge: \(error.localizedDescription)")
+                print("Error ending challenge: \(error.localizedDescription)")
                 completion(.failure(error))
             } else {
-                print("✅ Challenge ended successfully (reason: \(reason))")
+                print(" Challenge ended successfully (reason: \(reason))")
                 
                 // Post notification to refresh StepView
                 NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
@@ -749,7 +843,7 @@ extension CloudKitManager {
             
             enrollmentRecord["isActive"] = true as CKRecordValue
             
-            print("📝 Creating enrollment for user: \(username) with deviceID: \(deviceID)")
+            print("Creating enrollment for user: \(username) with deviceID: \(deviceID)")
             
             saveRecord(enrollmentRecord, to: .public) { result in
                 completion(result)
@@ -801,7 +895,7 @@ extension CloudKitManager {
                                 if let error = error {
                                     completion(.failure(error))
                                 } else {
-                                    print("✅ Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
+                                    print(" Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
                                     completion(.success(()))
                                 }
                             }
@@ -832,10 +926,10 @@ extension CloudKitManager {
         
         publicDatabase.perform(query, inZoneWith: nil) { records, error in
             if let error = error {
-                print("❌ Error fetching enrollments: \(error.localizedDescription)")
+                print(" Error fetching enrollments: \(error.localizedDescription)")
                 completion(.failure(error))
             } else if let records = records {
-                print("✅ Fetched \(records.count) enrollments")
+                print("Fetched \(records.count) enrollments")
                 completion(.success(records))
             }
         }
@@ -854,18 +948,18 @@ extension CloudKitManager {
             guard let self = self else { return }
             
             if let error = error {
-                print("❌ Error fetching enrollments: \(error.localizedDescription)")
+                print(" Error fetching enrollments: \(error.localizedDescription)")
                 completion(.failure(error))
                 return
             }
             
             guard let enrollments = records, !enrollments.isEmpty else {
-                print("ℹ️ No enrollments found")
+                print("No enrollments found")
                 completion(.success([]))
                 return
             }
             
-            print("📥 Fetched \(enrollments.count) enrollment records")
+            print("Fetched \(enrollments.count) enrollment records")
             
             // Fetch challenge details for each enrollment
             let group = DispatchGroup()
@@ -875,7 +969,7 @@ extension CloudKitManager {
                 group.enter()
                 
                 guard let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference else {
-                    print("⚠️ No challenge reference for enrollment")
+                    print(" No challenge reference for enrollment")
                     group.leave()
                     continue
                 }
@@ -884,24 +978,24 @@ extension CloudKitManager {
                     defer { group.leave() }
                     
                     if let error = error {
-                        print("❌ Error fetching challenge: \(error.localizedDescription)")
+                        print(" Error fetching challenge: \(error.localizedDescription)")
                         return
                     }
                     
                     guard let challenge = challenge else {
-                        print("⚠️ Challenge not found")
+                        print(" Challenge not found")
                         return
                     }
                     
                     let enriched = EnrollmentWithChallenge(from: enrollment, challenge: challenge)
                     enrichedEnrollments.append(enriched)
                     
-                    print("✅ Enriched enrollment: \(enriched.challengeName), active: \(enriched.isActive)")
+                    print("Enriched enrollment: \(enriched.challengeName), active: \(enriched.isActive)")
                 }
             }
             
             group.notify(queue: .main) {
-                print("✅ Total enriched enrollments: \(enrichedEnrollments.count)")
+                print("Total enriched enrollments: \(enrichedEnrollments.count)")
                 completion(.success(enrichedEnrollments))
             }
         }
@@ -916,19 +1010,30 @@ extension CKRecord {
         }
         
         let id = challengeID.lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return "challenge-10k-daily"
-        } else if id.contains("weekend") {
-            return "challenge-weekend-warrior"
-        } else if id.contains("marathon") {
-            return "challenge-marathon"
-        } else if id.contains("peak") {
-            return "challenge-peak-performance"
-        } else if id.contains("social") {
-            return "challenge-social"
-        } else if id.contains("streak") {
-            return "challenge-streak"
-        } else {
+        if id.contains("10k-monday"){
+            return "10kMonday"
+        } else if id.contains("weekend-warrior") {
+            return "weekendWarrior"
+        } else if id.contains("freedom-friday") {
+            return "freedomFriday"
+        } else if id.contains("steady-sunday") {
+            return "steadySunday"
+        } else if id.contains("super-saturday") {
+            return "superSaturday"
+        } else if id.contains("thirsty-thursday") {
+            return "thursday"
+        } else if id.contains("turbo-tuesday") {
+            return "turboTuesday"
+        } else if id.contains("10k-everyday") {
+            return "10kEveryday"
+        }else if id.contains("7k-everyday") {
+           return "7kEveryday"
+       }
+        else if id.contains("wellness-wednesday") {
+           return "wellnesWed"
+       }
+        
+        else {
             return "challenge-10k-daily"
         }
     }
