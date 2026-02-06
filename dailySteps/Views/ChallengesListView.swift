@@ -55,7 +55,8 @@ struct ChallengesListView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @EnvironmentObject private var mainViewModel: MainViewModel
-    
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
    
     @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
       private var backgroundColorString: String = BackgroundColor.sage.rawValue
@@ -137,9 +138,18 @@ struct ChallengesListView: View {
                 if challenges.isEmpty {
                       loadChallenges() // Uses cache
                   }
+    
             }
             .refreshable {
                 loadChallenges(forceRefresh: true) // Bypasses cache
+            }
+            .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
+                
+                if newValue {
+                  
+                        dismiss()
+                    
+                }
             }
         }
     }
@@ -161,6 +171,8 @@ struct ChallengesListView: View {
             }
         }
     }
+    
+  
 }
 
 // MARK: - Challenge Card View
@@ -611,11 +623,19 @@ struct ChallengeDetailView: View {
                     withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                         showEnrolledMessage = true
                     }
+                 
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        
+                        appState.dismissChallengeListView = true
                         dismiss()
-                        appState.shouldNavigateToStepView = true
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            appState.shouldNavigateToStepView = true
+                        }
+                    
                     }
+     
                     
                 case .failure(let error):
                     print("❌ Error enrolling: \(error.localizedDescription)")

@@ -15,6 +15,8 @@ struct StepView: View {
     @State private var isLoadingChallenge = false
     @State private var lastFetchTime: Date?
     
+    @EnvironmentObject var appState: AppState
+    
     private let cacheExpirationInterval: TimeInterval = 300 // 5 minutes
     
     var shouldRefreshChallenge: Bool {
@@ -190,6 +192,13 @@ struct StepView: View {
             if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
                 loadActiveChallenge(forceRefresh: false)
             }
+            
+            
+            if appState.dismissChallengeListView == true {
+                loadActiveChallenge(forceRefresh: true)
+                //reset
+                //appState.dismissChallengeListView = false
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnrolled"))) { _ in
             // Force refresh when user enrolls in a new challenge
@@ -199,6 +208,13 @@ struct StepView: View {
             // Force refresh when challenge ends
             loadActiveChallenge(forceRefresh: true)
         }
+        .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
+            loadActiveChallenge(forceRefresh: true)
+            //reset to false
+            //appState.dismissChallengeListView = false
+        }
+        
+       
     }
     
     private func loadActiveChallenge(forceRefresh: Bool = false) {

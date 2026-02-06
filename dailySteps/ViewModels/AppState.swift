@@ -10,4 +10,5 @@ import Foundation
 class AppState: ObservableObject {
     @Published var selectedTab: Int = 0
     @Published var shouldNavigateToStepView = false
+    @Published var dismissChallengeListView = false
 }
