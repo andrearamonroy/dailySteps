@@ -72,14 +72,14 @@ class MainViewModel : ObservableObject {
         
       
         // Load persisted colors from App Group
-        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? BackgroundColor.sage.rawValue
-        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? BackgroundColor.sage.rawValue
-        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? BackgroundColor.sage.rawValue
+        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? BackgroundColor.aurora.rawValue
+        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? BackgroundColor.aurora.rawValue
+        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? BackgroundColor.aurora.rawValue
         
-        self.primaryColor = BackgroundColor(rawValue: primaryRaw) ?? .sage
-        self.secondaryColor = BackgroundColor(rawValue: secondaryRaw) ?? .sage
+        self.primaryColor = BackgroundColor(rawValue: primaryRaw) ?? .aurora
+        self.secondaryColor = BackgroundColor(rawValue: secondaryRaw) ?? .aurora
         
-        self.backgroundColor = BackgroundColor(rawValue: backgroundRaw) ?? .sage
+        self.backgroundColor = BackgroundColor(rawValue: backgroundRaw) ?? .aurora
 
 
 

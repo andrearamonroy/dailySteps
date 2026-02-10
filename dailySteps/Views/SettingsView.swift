@@ -36,10 +36,10 @@ struct StepGoalSettingsView: View {
 
 
             Section(
-                header: Text("Streak Grace Days"),
-                footer: Text("How many days can you miss without breaking your streak?")
+                header: Text("Rest Days"),
+                footer: Text("Rest days don't break your personal streak (NOTE: Rest days don't count towards challenges!)")
             ) {
-                Stepper("Grace days allowed: \(mainViewModel.graceDays)",
+                Stepper("Rest Days: \(mainViewModel.graceDays)",
                         value: $mainViewModel.graceDays,
                         in: 0...3)
             }

@@ -10,6 +10,64 @@ import AVFoundation
 
 struct LetteringView: View {
     @State private var displayedText = ""
+    @State private var showText = false
+    
+    let fullText = "Daily Steps"
+    let typingSpeed: Double = 0.08
+    
+    var body: some View {
+        ZStack {
+            Color(.systemBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                Image("dailySteps")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 25))
+                    .shadow(color: .gray.opacity(0.3), radius: 10, x: 0, y: 5)
+                
+                if showText {
+                    Text(displayedText)
+                        .font(.system(size: 48, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.3, green: 0.5, blue: 0.9),
+                                    Color(red: 0.9, green: 0.5, blue: 0.6)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .transition(.opacity)
+                }
+            }
+        }
+        .onAppear {
+            // Small delay so the icon sits alone briefly
+            // matching the storyboard handoff
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                withAnimation { showText = true }
+                typeText()
+            }
+        }
+    }
+    
+    private func typeText() {
+        displayedText = ""
+        for (index, character) in fullText.enumerated() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(index) * typingSpeed) {
+                displayedText.append(character)
+                AudioServicesPlaySystemSound(1104)
+            }
+        }
+    }
+}
+
+struct LetteringView1: View {
+    @State private var displayedText = ""
     @State private var audioPlayer: AVAudioPlayer?
     
     let fullText = "Daily Steps"

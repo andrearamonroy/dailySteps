@@ -24,8 +24,8 @@ func loadWidgetTheme() -> WidgetTheme {
     let secondaryRaw = defaults.string(forKey: "secondaryColor") ?? "mint"
 
     return WidgetTheme(
-        primary: BackgroundColor(rawValue: primaryRaw)?.color ?? BackgroundColor.sage.color,
-        secondary: BackgroundColor(rawValue: secondaryRaw)?.color ?? BackgroundColor.sage.color
+        primary: BackgroundColor(rawValue: primaryRaw)?.color ?? BackgroundColor.aurora.color,
+        secondary: BackgroundColor(rawValue: secondaryRaw)?.color ?? BackgroundColor.aurora.color
     )
 }
 

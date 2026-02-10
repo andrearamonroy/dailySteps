@@ -17,6 +17,7 @@ enum BackgroundColor: String, CaseIterable, Identifiable {
     case lavender
     case pearl
     case pistacho
+    case aurora
 
     var id: String { rawValue }
 
@@ -30,6 +31,7 @@ enum BackgroundColor: String, CaseIterable, Identifiable {
         case .lavender: return "Lavender"
         case .pearl: return "Pearl"
         case .pistacho: return "Pistacho"
+        case .aurora: return "Aurora"
         }
     }
 
@@ -66,6 +68,13 @@ enum BackgroundColor: String, CaseIterable, Identifiable {
         case .pistacho:
             // ▢ Warm off-white, visible
             return Color(red: 0.85, green: 0.95, blue: 0.78)
+            
+        case .aurora:
+                    // Midpoint between blue (0.3,0.5,0.9) and pink (0.9,0.5,0.6)
+                    // of the Daily Steps gradient — soft periwinkle blush
+            return Color(red: 0.80, green: 0.88, blue: 0.98)
+            
+           
         }
     }
 }

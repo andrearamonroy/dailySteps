@@ -59,10 +59,10 @@ struct ChallengesListView: View {
     @Environment(\.dismiss) private var dismiss
    
     @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
-      private var backgroundColorString: String = BackgroundColor.sage.rawValue
+      private var backgroundColorString: String = BackgroundColor.aurora.rawValue
       
       var backgroundColor: Color {
-          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.sage.color
+          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.aurora.color
       }
     
     var body: some View {

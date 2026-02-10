@@ -29,11 +29,25 @@ struct StepView: View {
     }
     
     @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
-      private var backgroundColorString: String = BackgroundColor.sage.rawValue
+      private var backgroundColorString: String = BackgroundColor.aurora.rawValue
       
       var backgroundColor: Color {
-          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.sage.color
+          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.aurora.color
       }
+    
+    
+    
+    
+    ///congrats card
+    @State private var showGoalReachedOverlay = false
+    @State private var hasShownGoalCelebrationToday = false
+    @AppStorage("lastGoalCelebrationDate") private var lastCelebrationDateStr: String = ""
+    
+    //failed banner
+    @State private var showFailureBanner = false
+    @State private var failureReason: ChallengeFailureReason = .missedDay
+    @AppStorage("lastFailureBannerDate") private var lastFailureBannerDate: String = ""
+    
     
     var body: some View {
         NavigationStack {
@@ -49,6 +63,8 @@ struct StepView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.top)
+                        
+                        GreetingCardView()
                         
                         // Challenge Goal Banner (if active challenge exists)
                         if let challenge = activeChallenge,
@@ -185,8 +201,87 @@ struct StepView: View {
                 mainViewModel.healthManager.refreshTodaySteps()
             }
         }
+        
+        
+        
+        .overlay(alignment: .top) {
+            if showFailureBanner, let challenge = activeChallenge {
+                ChallengeFailedBanner(
+                    challengeName: challenge["name"] as? String ?? "Challenge",
+                    challengeIconName: challenge.challengeIconName,
+                    failureReason: failureReason,
+                    onTryAgain: {
+                        showFailureBanner = false
+                        // Navigate to challenges list so they can re-enroll
+                        appState.selectedTab = 2
+                    },
+                    onDismiss: {
+                        showFailureBanner = false
+                    }
+                )
+                .padding(.top, 8)
+                .zIndex(998)
+            }
+        }
+     
+        .overlay {
+            if showGoalReachedOverlay, let challenge = activeChallenge {
+                GoalReachedOverlay(
+                    challengeName: challenge["name"] as? String ?? "Challenge",
+                    targetSteps: challenge["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal),
+                    challengeIconName: challenge.challengeIconName,
+                    isShowing: $showGoalReachedOverlay
+                )
+                .transition(.opacity)
+                .zIndex(998)
+            }
+        }
+        // ADD challenge completed overlay
+        .overlay {
+            if appState.showChallengeCompletedOverlay {
+                ChallengeCompletedOverlay(
+                    challengeName: appState.completedChallengeName,
+                    totalDays: appState.completedChallengeDays,
+                    targetSteps: appState.completedChallengeSteps,
+                    challengeIconName: appState.completedChallengeIconName,
+                    isShowing: $appState.showChallengeCompletedOverlay
+                ) {
+                    // "View My Badge" tapped
+                    appState.showBadgeSpotlight = true
+                }
+                .transition(.opacity)
+                .zIndex(999)
+            }
+        }
+        // ADD badge spotlight full screen cover
+        .fullScreenCover(isPresented: $appState.showBadgeSpotlight) {
+            BadgeSpotlightView(
+                challengeIconName: appState.completedChallengeIconName,
+                challengeName: appState.completedChallengeName,
+                isShowing: $appState.showBadgeSpotlight
+            ) {
+                // Navigate to badges tab
+                appState.selectedTab = 3
+            }
+        }
+       
+        
+        .overlay {
+            if showGoalReachedOverlay, let challenge = activeChallenge {
+                GoalReachedOverlay(
+                    challengeName: challenge["name"] as? String ?? "Challenge",
+                    targetSteps: challenge["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal),
+                    challengeIconName: challenge.challengeIconName,
+                    isShowing: $showGoalReachedOverlay
+                )
+                .transition(.opacity)
+                .zIndex(999)
+            }
+        }
         .onAppear {
             mainViewModel.healthManager.refreshTodaySteps()
+            
+            checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             
             // Only load challenge if cache expired or no data
             if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
@@ -214,8 +309,85 @@ struct StepView: View {
             //appState.dismissChallengeListView = false
         }
         
-       
+        .onChange(of: mainViewModel.healthManager.stepCount) { _, newCount in
+            checkGoalCelebration(steps: newCount)
+        }
     }
+
+    
+    private func checkChallengeFailure(challenge: CKRecord, enrollment: CKRecord) {
+        // Only show once per calendar day
+        if let last = ISO8601DateFormatter().date(from: lastFailureBannerDate),
+           Calendar.current.isDateInToday(last) { return }
+
+        cloudKitManager.checkForChallengeFailure(
+            challenge: challenge,
+            enrollment: enrollment
+        ) { reason in
+            DispatchQueue.main.async {
+                guard let reason else { return }
+                self.failureReason = reason
+                self.lastFailureBannerDate = ISO8601DateFormatter().string(from: Date())
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation { self.showFailureBanner = true }
+                }
+            }
+        }
+    }
+      
+    private func checkGoalCelebration(steps: Int) {
+        let goal = activeChallenge?["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal)
+        guard steps >= goal else { return }
+        guard !hasShownGoalCelebrationToday else { return }
+
+        // Only once per calendar day
+        if let last = ISO8601DateFormatter().date(from: lastCelebrationDateStr),
+           Calendar.current.isDateInToday(last) { return }
+
+        hasShownGoalCelebrationToday = true
+        lastCelebrationDateStr = ISO8601DateFormatter().string(from: Date())
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation { showGoalReachedOverlay = true }
+        }
+    }
+    
+    /// <#Description#>
+    /// - Parameters:
+    ///   - challenge: <#challenge description#>
+    ///   - enrollment: <#enrollment description#>
+    func checkIfChallengeJustCompleted(challenge: CKRecord, enrollment: CKRecord) {
+        // Don't fire if already completed
+        if enrollment["completedAt"] as? Date != nil { return }
+
+        let totalDays   = challenge["duration"] as? Int ?? 30
+        let daysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
+        let targetSteps = challenge["targetSteps"] as? Int ?? 10000
+        let todaySteps  = mainViewModel.healthManager.stepCount
+
+        guard daysCompleted >= totalDays && todaySteps >= targetSteps else { return }
+
+        cloudKitManager.markChallengeCompleted(enrollment: enrollment) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    appState.completedChallengeName     = challenge["name"] as? String ?? "Challenge"
+                    appState.completedChallengeIconName = challenge.challengeIconName
+                    appState.completedChallengeDays     = totalDays
+                    appState.completedChallengeSteps    = targetSteps
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        withAnimation { appState.showChallengeCompletedOverlay = true }
+                    }
+                case .failure(let error):
+                    print("❌ Failed to mark complete: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+     
+
+   
     
     private func loadActiveChallenge(forceRefresh: Bool = false) {
         // Check cache first
@@ -237,6 +409,13 @@ struct StepView: View {
                 case .success(let (challenge, enrollment)):
                     self.activeChallenge = challenge
                     self.enrollment = enrollment
+                   
+          
+                    // ADD THESE TWO:
+                    self.checkIfChallengeJustCompleted(challenge: challenge, enrollment: enrollment)
+                    self.checkGoalCelebration(steps: self.mainViewModel.healthManager.stepCount)
+
+                    self.checkChallengeFailure(challenge: challenge, enrollment: enrollment)
                     print("✅ Loaded active challenge: \(challenge["name"] as? String ?? "Unknown")")
                 case .failure(let error):
                     print("ℹ️ No active challenge: \(error.localizedDescription)")

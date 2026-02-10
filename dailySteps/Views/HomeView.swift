@@ -14,10 +14,10 @@ struct HomeView: View {
     var body: some View {
         TabView(selection: $appState.selectedTab) {
             NavigationStack {
-                LetteringView()
+                BadgesTabView()
             }
             .tabItem {
-                Label("Calendar", systemImage: "person.fill")
+                Label("Badges", systemImage: "rosette")
             }
             .tag(0)
             
@@ -36,6 +36,7 @@ struct HomeView: View {
                 Label("Challenges", systemImage: "trophy")
             }
             .tag(2)
+            
         }
         .onAppear {
                    // Force it to tag 1 when the view appears

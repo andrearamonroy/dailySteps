@@ -16,6 +16,7 @@
 		655DFF632F18189C00C97F8C /* CalendarGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF612F18189C00C97F8C /* CalendarGridView.swift */; };
 		655DFF652F187DC600C97F8C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF642F187DC600C97F8C /* Theme.swift */; };
 		655DFF662F187DC600C97F8C /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655DFF642F187DC600C97F8C /* Theme.swift */; };
+		65B77FCA2F3BBCAE00A124F0 /* Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 65B77FC92F3BBCAE00A124F0 /* Launch Screen.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 		65A2A2902DB5BCA20007ACD4 /* dailySteps.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dailySteps.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A2A2A52DB5BCA40007ACD4 /* dailyStepsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dailyStepsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		65A2A2AF2DB5BCA40007ACD4 /* dailyStepsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = dailyStepsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		65B77FC92F3BBCAE00A124F0 /* Launch Screen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = "Launch Screen.storyboard"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -183,6 +185,7 @@
 		65A2A2872DB5BCA20007ACD4 = {
 			isa = PBXGroup;
 			children = (
+				65B77FC92F3BBCAE00A124F0 /* Launch Screen.storyboard */,
 				655DFF5D2F18109400C97F8C /* Shared */,
 				0D4AA5A22F046CD200DF5F83 /* dailyStepsWidgetExtension.entitlements */,
 				65A2A2922DB5BCA20007ACD4 /* dailySteps */,
@@ -360,6 +363,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				65B77FCA2F3BBCAE00A124F0 /* Launch Screen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

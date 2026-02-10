@@ -20,6 +20,8 @@ struct dailyStepsApp: App {
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     
     @StateObject private var appState = AppState()
+    
+    @State private var isShowingSplash = true
    
     init(){
 #if DEBUG
@@ -31,15 +33,36 @@ struct dailyStepsApp: App {
     
     var body: some Scene {
         
-
         WindowGroup {
-            if hasCompletedOnboarding {
-                HomeView()
-                    .environmentObject(mainViewModel)
-                    .environment(\.managedObjectContext, persistenceController.container.viewContext)
-                    .environmentObject(appState)
-            } else {
-                WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            ZStack {
+                // Your existing code — unchanged
+                ZStack {
+                    if hasCompletedOnboarding {
+                        HomeView()
+                            .environmentObject(mainViewModel)
+                            .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                            .environmentObject(appState)
+                    } else {
+                        WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
+                    }
+                }
+
+                // Splash on top
+                if isShowingSplash {
+                    LetteringView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(.systemBackground).ignoresSafeArea())
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                        .zIndex(1) // ensures it always sits on top
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.easeInOut(duration: 0.4)) {
+                        isShowingSplash = false
+                    }
+                }
             }
         }
         .onChange(of: scenePhase) {  oldPhase, newPhase in
