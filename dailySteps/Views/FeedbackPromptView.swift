@@ -135,7 +135,7 @@ struct FeedbackPromptView: View {
     }
     
     private func sendFeedbackEmail() {
-        let email = "your.email@example.com" // Replace with your email
+        let email = "thedailystepsapp@gmail.com"
         let subject = "Daily Steps Feedback"
         let body = "Hi there,\n\nI'd like to share some feedback:\n\n"
         
