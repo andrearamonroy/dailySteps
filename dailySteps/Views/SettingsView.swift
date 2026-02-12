@@ -13,51 +13,55 @@ struct StepGoalSettingsView: View {
     
     @State private var showCustomSheet = false
     @State private var customGoalText = ""
-
+    @ObservedObject var themeManager = ThemeManager.shared
 
     var body: some View {
-        Form {
-            Section(
-                header: Text("Step Goal")
-            ) {
-                Stepper(
-                    value: $mainViewModel.stepGoal,
-                    in: 1_000...20_000,
-                    step: 500
+        ZStack {
+            
+            
+            // Background gradient
+            themeManager.backgroundColor
+                .ignoresSafeArea()
+            Form {
+                Section(
+                    header: Text("Step Goal")
                 ) {
-                    Text("Daily step goal: \(mainViewModel.stepGoal.formatted())")
+                    Stepper(
+                        value: $mainViewModel.stepGoal,
+                        in: 1_000...20_000,
+                        step: 500
+                    ) {
+                        Text("Daily step goal: \(mainViewModel.stepGoal.formatted())")
+                    }
+                    
+                    Button("Custom...") {
+                        customGoalText = String(mainViewModel.stepGoal)
+                        showCustomSheet = true
+                    }
                 }
-
-                Button("Custom...") {
-                    customGoalText = String(mainViewModel.stepGoal)
-                    showCustomSheet = true
+                
+                
+                Section(
+                    header: Text("Rest Days"),
+                    footer: Text("Rest days don't break your personal streak (NOTE: Rest days don't count towards challenges!)")
+                ) {
+                    Stepper("Rest Days: \(mainViewModel.graceDays)",
+                            value: $mainViewModel.graceDays,
+                            in: 0...3)
                 }
+                
+                
+                Section(
+                    header: Text("Theme"),
+                    footer: Text("Choose the colors of your app!")
+                ) {
+                    
+                    ThemePickerView()
+                }
+                
+                
+                
             }
-
-
-            Section(
-                header: Text("Rest Days"),
-                footer: Text("Rest days don't break your personal streak (NOTE: Rest days don't count towards challenges!)")
-            ) {
-                Stepper("Rest Days: \(mainViewModel.graceDays)",
-                        value: $mainViewModel.graceDays,
-                        in: 0...3)
-            }
-
-            
-            Section(
-                header: Text("Theme"),
-                footer: Text("Choose the colors of your app!")
-            ) {
-               
-                ThemePickerView(primary: $mainViewModel.primaryColor,
-                                secondary: $mainViewModel.secondaryColor,
-                                background: $mainViewModel.backgroundColor
-                )
-            }
-            
-         
-            
         }
         .navigationTitle("Settings")
         .sheet(isPresented: $showCustomSheet) {

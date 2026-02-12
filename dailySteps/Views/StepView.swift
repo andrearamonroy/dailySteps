@@ -27,15 +27,9 @@ struct StepView: View {
     var challengeTargetSteps: Int? {
         activeChallenge?["targetSteps"] as? Int
     }
+
     
-    @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
-      private var backgroundColorString: String = BackgroundColor.aurora.rawValue
-      
-      var backgroundColor: Color {
-          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.aurora.color
-      }
-    
-    
+    @ObservedObject var themeManager = ThemeManager.shared
     
     
     ///congrats card
@@ -48,12 +42,13 @@ struct StepView: View {
     @State private var failureReason: ChallengeFailureReason = .missedDay
     @AppStorage("lastFailureBannerDate") private var lastFailureBannerDate: String = ""
     
+    @Environment(\.managedObjectContext) private var viewContext
     
     var body: some View {
         NavigationStack {
             ZStack {
                 // Background color
-                backgroundColor
+                themeManager.backgroundColor
                     .ignoresSafeArea()
                 
                 ScrollView {
@@ -116,7 +111,7 @@ struct StepView: View {
                                 }
                             } else {
                                 // Only personal goal (no active challenge)
-                                VStack(spacing: 8) {
+                                VStack(spacing: 16) {
                                     Text("Personal Goal")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -138,6 +133,32 @@ struct StepView: View {
                                         Text("\(Int(mainViewModel.stepGoal) - mainViewModel.healthManager.stepCount) steps to go")
                                             .font(.subheadline)
                                             .foregroundColor(.orange)
+                                    }
+                                    
+                                    Divider()
+                                        .padding(.horizontal, 40)
+                                        .padding(.vertical, 4)
+                                    
+                                    VStack(spacing: 4) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "flame.fill")
+                                                .font(.system(size: 16))
+                                                .foregroundStyle(
+                                                    LinearGradient(
+                                                        colors: [.orange, .red],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                            
+                                            StreakNumberView()
+                                                .environment(\.managedObjectContext, viewContext)
+                                                .environmentObject(mainViewModel)
+                                        }
+                                        
+                                        Text("day streak")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
                                     }
                                 }
                             }
@@ -199,6 +220,9 @@ struct StepView: View {
             .refreshable {
                 loadActiveChallenge(forceRefresh: true)
                 mainViewModel.healthManager.refreshTodaySteps()
+                
+                //update progress after refresh
+                mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             }
         }
         
@@ -281,6 +305,9 @@ struct StepView: View {
         .onAppear {
             mainViewModel.healthManager.refreshTodaySteps()
             
+            //update progress with current steps
+            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+            
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             
             // Only load challenge if cache expired or no data
@@ -311,6 +338,13 @@ struct StepView: View {
         
         .onChange(of: mainViewModel.healthManager.stepCount) { _, newCount in
             checkGoalCelebration(steps: newCount)
+        }
+        
+        .onChange(of: mainViewModel.healthManager.stepCount) { oldValue, newValue in
+            // Only update if steps increased
+            if newValue > oldValue {
+                mainViewModel.checkAndUpdateProgress(currentSteps: newValue)
+            }
         }
     }
 
@@ -532,6 +566,7 @@ struct ChallengeGoalBanner: View {
     }
 }
 
+
 // MARK: - Goal Progress View
 struct GoalProgressView: View {
     let title: String
@@ -539,6 +574,9 @@ struct GoalProgressView: View {
     let currentSteps: Int
     let color: Color
     let isChallenge: Bool
+    
+    @EnvironmentObject var mainViewModel: MainViewModel
+    @Environment(\.managedObjectContext) private var viewContext
     
     var isCompleted: Bool {
         currentSteps >= goalSteps
@@ -580,6 +618,35 @@ struct GoalProgressView: View {
                     .font(.caption)
                     .foregroundColor(.orange)
             }
+            
+            // Add streak ONLY for personal goal
+            if !isChallenge {
+                Divider()
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 4)
+                
+                VStack(spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.orange, .red],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        StreakNumberView()
+                            .environment(\.managedObjectContext, viewContext)
+                            .environmentObject(mainViewModel)
+                    }
+                    
+                    Text("day streak")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+            }
         }
         .frame(maxWidth: .infinity)
     }
@@ -592,7 +659,33 @@ struct GoalProgressView: View {
     }
 }
 
-
+// MARK: - Streak Number View
+struct StreakNumberView: View {
+    @EnvironmentObject var mainViewModel: MainViewModel
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Day.date, ascending: true)],
+        predicate: NSPredicate(format: "(date >= %@) AND (date <= %@)",
+                               Date().startOfMonth as CVarArg,
+                               Date().endOfMonth as CVarArg))
+    private var days: FetchedResults<Day>
+    
+    var body: some View {
+        let streakValue = StreakCalculator.calculate(
+            days: Array(days),
+            maxGraceDays: mainViewModel.graceDays
+        )
+        
+        Text("\(streakValue)")
+            .font(.system(size: 20, weight: .bold, design: .rounded))
+            .foregroundStyle(
+                streakValue > 0
+                ? LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing)
+                : LinearGradient(colors: [.gray], startPoint: .leading, endPoint: .trailing)
+            )
+    }
+}
 
 
 // MARK: - Active Challenge Card

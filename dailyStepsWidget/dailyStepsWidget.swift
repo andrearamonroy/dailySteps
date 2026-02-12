@@ -11,13 +11,16 @@ import CoreData
 
 
 struct WidgetTheme {
-    let primary: Color
-    let secondary: Color
+    let primary: LinearGradient
+    let secondary: LinearGradient
 }
 
 func loadWidgetTheme() -> WidgetTheme {
     guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
-        return WidgetTheme(primary: .blue, secondary: .mint)
+        return WidgetTheme(
+                    primary: BackgroundColor.aurora.color,
+                    secondary: BackgroundColor.aurora.color
+                )
     }
 
     let primaryRaw = defaults.string(forKey: "primaryColor") ?? "blue"
@@ -55,7 +58,12 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func placeholder(in context: Context) -> CalendarEntry {
-        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
+        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [], streak: 0, theme:
+                        WidgetTheme(
+                            primary: BackgroundColor.aurora.color,
+                            secondary: BackgroundColor.aurora.color
+                        )
+        )
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> CalendarEntry {
@@ -69,7 +77,10 @@ struct Provider: AppIntentTimelineProvider {
             return  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme)
         } catch {
             print("Widget failed to fetch days in the snapshot")
-            return  CalendarEntry(date: Date(), configuration: configuration, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
+            return  CalendarEntry(date: Date(), configuration: configuration, days: [], streak: 0, theme: WidgetTheme(
+                primary: BackgroundColor.aurora.color,
+                secondary: BackgroundColor.aurora.color
+            ))
         }
         
         
@@ -105,38 +116,91 @@ struct CalendarEntry: TimelineEntry {
     let configuration: ConfigurationAppIntent
     let days : [Day]
     let streak : Int
-    let theme: WidgetTheme 
+    let theme: WidgetTheme
+
 }
 
-struct dailyStepsWidgetEntryView : View {
+struct dailyStepsWidgetEntryView: View {
     var entry: Provider.Entry
-    let columns = Array(repeating: GridItem(.flexible()), count: 7)
-
+    @Environment(\.widgetFamily) var family
+ 
+    
     var body: some View {
-        
-        Text("in dev")
-        /*HStack {
-            VStack {
-                Text("\(entry.streak)")
-                    .font(.system(size: 70, design: .rounded))
-                    .bold()
-                    .foregroundStyle(entry.theme.primary)
-                
-                Text("day streak")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                
-            }
-            VStack {
-                CalendarHeaderView(font: .caption2)
-
-                CalendarGridView(days: entry.days, today: entry.date)
-            }
-            .padding(.leading)
-        }*/
+        switch family {
+        case .systemSmall:
+            SmallWidgetView(entry: entry)
+        case .accessoryInline:
+            InlineWidgetView(entry: entry)
+        @unknown default:
+            SmallWidgetView(entry: entry)
+        }
     }
 }
 
+// MARK: - Small Widget
+struct SmallWidgetView: View {
+    let entry: Provider.Entry
+ 
+    
+    var body: some View {
+        ZStack {
+          
+            
+            VStack(spacing: 8) {
+                // Step count
+               // Text("\(entry.stepCount)")
+                Text("\(0)")
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .minimumScaleFactor(0.5)
+                
+                Text("steps")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Divider()
+                    .padding(.horizontal)
+                
+                // Streak
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.orange, .red],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                    Text("\(entry.streakCount)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.orange, .red],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+                
+                Text("day streak")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Inline Widget (Lock Screen)
+struct InlineWidgetView: View {
+    let entry: Provider.Entry
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("0 steps")
+        }
+    }
+}
 struct dailyStepsWidget: Widget {
     let kind: String = "dailyStepsWidget"
 
@@ -169,6 +233,12 @@ extension ConfigurationAppIntent {
     dailyStepsWidget()
     
 } timeline: {
-    CalendarEntry(date: .now, configuration: .smiley, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint) )
-    CalendarEntry(date: .now, configuration: .starEyes, days: [], streak: 0, theme: WidgetTheme(primary: .blue, secondary: .mint))
+    CalendarEntry(date: .now, configuration: .smiley, days: [], streak: 0, theme: WidgetTheme(
+        primary: BackgroundColor.aurora.color,
+        secondary: BackgroundColor.aurora.color
+    ) )
+    CalendarEntry(date: .now, configuration: .starEyes, days: [], streak: 0, theme:  WidgetTheme(
+        primary: BackgroundColor.aurora.color,
+        secondary: BackgroundColor.aurora.color
+    ))
 }

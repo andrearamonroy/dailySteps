@@ -54,32 +54,34 @@ class MainViewModel : ObservableObject {
     
     
     private let groupDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")!
+    
+    private let cloudKitManager = CloudKitManager.shared
 
-        // MARK: - Theme Colors
-        @Published var primaryColor: BackgroundColor {
-            didSet { saveColors() }
-        }
-        @Published var secondaryColor: BackgroundColor {
-            didSet { saveColors() }
-        }
-    @Published var backgroundColor: BackgroundColor {
-        didSet { saveColors() }
-    }
+//        // MARK: - Theme Colors
+//        @Published var primaryColor: BackgroundColor {
+//            didSet { saveColors() }
+//        }
+//        @Published var secondaryColor: BackgroundColor {
+//            didSet { saveColors() }
+//        }
+//    @Published var backgroundColor: BackgroundColor {
+//        didSet { saveColors() }
+//    }
     
     
     init(){
 
         
       
-        // Load persisted colors from App Group
-        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? BackgroundColor.aurora.rawValue
-        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? BackgroundColor.aurora.rawValue
-        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? BackgroundColor.aurora.rawValue
-        
-        self.primaryColor = BackgroundColor(rawValue: primaryRaw) ?? .aurora
-        self.secondaryColor = BackgroundColor(rawValue: secondaryRaw) ?? .aurora
-        
-        self.backgroundColor = BackgroundColor(rawValue: backgroundRaw) ?? .aurora
+//        // Load persisted colors from App Group
+//        let primaryRaw = groupDefaults.string(forKey: "primaryColor") ?? BackgroundColor.aurora.rawValue
+//        let secondaryRaw = groupDefaults.string(forKey: "secondaryColor") ?? BackgroundColor.aurora.rawValue
+//        let backgroundRaw = groupDefaults.string(forKey: "backgroundColor") ?? BackgroundColor.aurora.rawValue
+//        
+//        self.primaryColor = BackgroundColor(rawValue: primaryRaw) ?? .aurora
+//        self.secondaryColor = BackgroundColor(rawValue: secondaryRaw) ?? .aurora
+//        
+//        self.backgroundColor = BackgroundColor(rawValue: backgroundRaw) ?? .aurora
 
 
 
@@ -116,7 +118,7 @@ class MainViewModel : ObservableObject {
         
     }
     
- 
+ /*
     
     private func saveColors() {
         groupDefaults.set(primaryColor.rawValue, forKey: "primaryColor")
@@ -126,6 +128,21 @@ class MainViewModel : ObservableObject {
         // Tell widgets to refresh
         WidgetCenter.shared.reloadAllTimelines()
     }
+    
+  */
+    
+    func checkAndUpdateProgress(currentSteps: Int) {
+        cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
+            switch result {
+            case .success:
+                print("✅ Progress updated successfully")
+            case .failure(let error):
+                print("❌ Failed to update progress: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
     
     //If i need to do push notification I will make a separate class for this
     private func checkStepGoalAndNotify(steps: Int, stepGoal: Int ) {

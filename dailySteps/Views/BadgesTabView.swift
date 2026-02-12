@@ -134,7 +134,7 @@ struct BadgesTabView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedBadge: EarnedBadge?
-
+    @ObservedObject var themeManager = ThemeManager.shared
     // Group badges by year, newest year first
     var badgesByYear: [(year: Int, badges: [EarnedBadge])] {
         let grouped = Dictionary(grouping: badges, by: { $0.completionYear })
@@ -144,7 +144,7 @@ struct BadgesTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground).ignoresSafeArea()
+                themeManager.backgroundColor.ignoresSafeArea()
 
                 if isLoading {
                     loadingView

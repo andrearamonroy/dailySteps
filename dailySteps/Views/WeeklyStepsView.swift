@@ -125,7 +125,7 @@ struct DayStepProgressView: View {
     let date: Date
     let steps: Int
     let stepGoal: Int
-
+    @ObservedObject var themeManager = ThemeManager.shared
     private var progress: Double {
         min(Double(steps) / Double(stepGoal), 1.0)
     }
@@ -143,7 +143,7 @@ struct DayStepProgressView: View {
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        progress >= 1 ? Color.green : mainViewModel.secondaryColor.color,
+                        progress >= 1 ? Color.green :  Color.orange,
                         style: StrokeStyle(lineWidth: 8, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))

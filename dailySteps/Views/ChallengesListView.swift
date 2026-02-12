@@ -57,18 +57,13 @@ struct ChallengesListView: View {
     @EnvironmentObject private var mainViewModel: MainViewModel
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
-   
-    @AppStorage("backgroundColor", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps"))
-      private var backgroundColorString: String = BackgroundColor.aurora.rawValue
-      
-      var backgroundColor: Color {
-          BackgroundColor(rawValue: backgroundColorString)?.color ?? BackgroundColor.aurora.color
-      }
+    @ObservedObject var themeManager = ThemeManager.shared
+
     
     var body: some View {
         NavigationView {
             ZStack {
-               backgroundColor
+                themeManager.backgroundColor
                       .ignoresSafeArea()
                 
                 if isLoading {
@@ -733,7 +728,7 @@ struct CardFrontView: View {
             return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
        }
         else if id.contains("saturday") {
-            return LinearGradient(colors: [Color.mint, Color.green], startPoint: .topLeading, endPoint: .bottomTrailing)
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
        }
         else if id.contains("thrusday") {
             return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -816,7 +811,7 @@ struct CardBackView: View {
             return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
        }
         else if id.contains("saturday") {
-            return LinearGradient(colors: [Color.mint, Color.green], startPoint: .topLeading, endPoint: .bottomTrailing)
+            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
        }
         else if id.contains("thrusday") {
             return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)

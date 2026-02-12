@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "free.png",
+      "filename" : "ai10KM-3 2.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "free@2x.png",
+      "filename" : "ai10KM-3.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "free@3x.png",
+      "filename" : "ai10KM-3 1.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
