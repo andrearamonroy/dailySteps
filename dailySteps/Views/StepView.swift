@@ -308,6 +308,11 @@ struct StepView: View {
             //update progress with current steps
             mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             
+            // Schedule evening reminder if goal not met yet
+              NotificationManager.shared.scheduleEveningReminderIfNeeded(
+                  currentSteps: mainViewModel.healthManager.stepCount,
+                  goalSteps: Int(mainViewModel.stepGoal)
+              )
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             
             // Only load challenge if cache expired or no data
@@ -336,15 +341,44 @@ struct StepView: View {
             //appState.dismissChallengeListView = false
         }
         
-        .onChange(of: mainViewModel.healthManager.stepCount) { _, newCount in
-            checkGoalCelebration(steps: newCount)
-        }
+
         
         .onChange(of: mainViewModel.healthManager.stepCount) { oldValue, newValue in
-            // Only update if steps increased
             if newValue > oldValue {
-                mainViewModel.checkAndUpdateProgress(currentSteps: newValue)
+                progressManager.checkAndUpdateProgress(currentSteps: newValue)
+                
+                // Send encouraging notifications
+                NotificationManager.shared.scheduleEncouragingNotification(
+                    currentSteps: newValue,
+                    goalSteps: Int(mainViewModel.stepGoal)
+                )
+                
+                // Check personal goal
+                if oldValue < mainViewModel.stepGoal && newValue >= mainViewModel.stepGoal {
+                    NotificationManager.shared.sendGoalReachedNotification(type: .personal)
+                    
+                    // Send personal streak milestone
+                    let personalStreak = StreakCalculator.calculate(
+                        days: Array(days),
+                        maxGraceDays: mainViewModel.graceDays
+                    )
+                    NotificationManager.shared.sendStreakMilestone(streak: personalStreak, type: .personal)
+                }
+                
+                // Check challenge goal (if active)
+                if let targetSteps = challengeTargetSteps,
+                   oldValue < targetSteps && newValue >= targetSteps {
+                    NotificationManager.shared.sendGoalReachedNotification(type: .challenge)
+                    
+                    // Send challenge streak milestone
+                    if let enrollment = enrollment,
+                       let challengeStreak = enrollment["currentStreak"] as? Int {
+                        NotificationManager.shared.sendStreakMilestone(streak: challengeStreak, type: .challenge)
+                    }
+                }
             }
+            
+            checkGoalCelebration(steps: newValue)
         }
     }
 

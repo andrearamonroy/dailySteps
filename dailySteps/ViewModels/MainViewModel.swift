@@ -115,6 +115,9 @@ class MainViewModel : ObservableObject {
         //CloudKitManager.shared.createSampleChallenges()
        // CloudKitReferenceAdder.shared.addReferences()
         
+      
+       
+        
         
     }
     
@@ -131,16 +134,29 @@ class MainViewModel : ObservableObject {
     
   */
     
-    func checkAndUpdateProgress(currentSteps: Int) {
-        cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
-            switch result {
-            case .success:
-                print("✅ Progress updated successfully")
-            case .failure(let error):
-                print("❌ Failed to update progress: \(error.localizedDescription)")
+
+        
+        func checkAndUpdateProgress(currentSteps: Int) {
+            cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
+                switch result {
+                case .success:
+                    print("✅ Progress updated successfully")
+                    
+                    // Fetch updated enrollment to check for streak milestones
+                    self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
+                        if case .success(let (_, enrollment)) = enrollmentResult,
+                           let streak = enrollment["currentStreak"] as? Int {
+                            // Send challenge streak milestone notification
+                            NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
+                        }
+                    }
+                    
+                case .failure(let error):
+                    print("❌ Failed to update progress: \(error.localizedDescription)")
+                }
             }
         }
-    }
+    
     
     
     
@@ -150,7 +166,7 @@ class MainViewModel : ObservableObject {
         // Only notify once per day
         guard steps >= stepGoal && notificationSentForDay < today else { return }
         
-        sendNotification()
+       // sendNotification()
         notificationSentForDay = today
     }
     
@@ -159,12 +175,25 @@ class MainViewModel : ObservableObject {
             if let error = error {
                 print("Notification permission error = \(error.localizedDescription)")
             } else if granted {
-                print("Notification permision granted!!!")
+                print("Notification permission granted!!!")
+                
+                // Schedule daily reminder at 9 AM
+                var dateComponents = DateComponents()
+                dateComponents.hour = 9
+                dateComponents.minute = 0
+                NotificationManager.shared.scheduleDailyGoalReminder(at: dateComponents)
             }
         }
     }
-    
-    private func sendNotification() {
+    @MainActor
+    // In StepView or MainViewModel
+    func scheduleEveningCheck() {
+        NotificationManager.shared.scheduleEveningReminderIfNeeded(
+            currentSteps: healthManager.stepCount,
+            goalSteps: Int(stepGoal)
+        )
+    }
+    /*private func sendNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Congrats!"
         content.body = "You've reached \(stepGoal) steps today"
@@ -179,7 +208,7 @@ class MainViewModel : ObservableObject {
                 print("Error scheduling step goal reached notification \(error.localizedDescription)")
             }
         }
-    }
+    }*/
 
 }
 

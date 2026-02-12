@@ -31,7 +31,6 @@ struct StreakView: View {
             maxGraceDays: mainViewModel.graceDays
         )
 
-        
         VStack {
             Text("\(streakValue)")
                 .font(.system(size: 200, weight: .semibold, design: .rounded))
