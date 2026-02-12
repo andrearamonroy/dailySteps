@@ -151,13 +151,36 @@ class MainViewModel : ObservableObject {
                         }
                     }
                     
+                    // Increment challenge completion count
+                        let challengeDays = UserDefaults.standard.integer(forKey: "challengeDaysCompleted")
+                        UserDefaults.standard.set(challengeDays + 1, forKey: "challengeDaysCompleted")
+                        
+                        // Show feedback prompt after 7 challenge days
+                        if challengeDays >= 7 && self.shouldShowFeedbackPrompt() {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                NotificationCenter.default.post(name: NSNotification.Name("ShowFeedbackPrompt"), object: nil)
+                            }
+                        }
+                    
                 case .failure(let error):
                     print("❌ Failed to update progress: \(error.localizedDescription)")
                 }
             }
         }
     
-    
+   func shouldShowFeedbackPrompt() -> Bool {
+        // Don't show more than once every 7 days
+        if let lastPrompt = UserDefaults.standard.object(forKey: "lastFeedbackPromptDate") as? Date {
+            let daysSinceLastPrompt = Calendar.current.dateComponents([.day], from: lastPrompt, to: Date()).day ?? 0
+            if daysSinceLastPrompt < 7 {
+                return false
+            }
+        }
+        
+        // Show after 5 successful goal completions
+        let goalCompletionCount = UserDefaults.standard.integer(forKey: "goalCompletionCount")
+        return goalCompletionCount >= 5
+    }
     
     
     //If i need to do push notification I will make a separate class for this

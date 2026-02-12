@@ -139,7 +139,7 @@ struct dailyStepsWidgetEntryView: View {
 
 // MARK: - Small Widget
 struct SmallWidgetView: View {
-    let entry: Provider.Entry
+    let entry: CalendarEntry
  
     
     var body: some View {
@@ -170,7 +170,7 @@ struct SmallWidgetView: View {
                                 endPoint: .trailing
                             )
                         )
-                    Text("\(entry.streakCount)")
+                    Text("0")
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundStyle(

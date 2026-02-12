@@ -44,6 +44,15 @@ struct StepView: View {
     
     @Environment(\.managedObjectContext) private var viewContext
     
+    @FetchRequest(
+            sortDescriptors: [NSSortDescriptor(keyPath: \Day.date, ascending: true)],
+            predicate: NSPredicate(format: "(date >= %@) AND (date <= %@)",
+                                   Date().startOfMonth as CVarArg,
+                                   Date().endOfMonth as CVarArg))
+        private var days: FetchedResults<Day>
+    
+    @State private var showFeedbackPrompt = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -277,6 +286,14 @@ struct StepView: View {
                 .zIndex(999)
             }
         }
+        
+        .overlay {
+            if showFeedbackPrompt {
+                FeedbackPromptView(isShowing: $showFeedbackPrompt)
+                    .transition(.opacity)
+                    .zIndex(1000)
+            }
+        }
         // ADD badge spotlight full screen cover
         .fullScreenCover(isPresented: $appState.showBadgeSpotlight) {
             BadgeSpotlightView(
@@ -335,6 +352,12 @@ struct StepView: View {
             // Force refresh when challenge ends
             loadActiveChallenge(forceRefresh: true)
         }
+        
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowFeedbackPrompt"))) { _ in
+            withAnimation {
+                showFeedbackPrompt = true
+            }
+        }
         .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
             loadActiveChallenge(forceRefresh: true)
             //reset to false
@@ -345,7 +368,7 @@ struct StepView: View {
         
         .onChange(of: mainViewModel.healthManager.stepCount) { oldValue, newValue in
             if newValue > oldValue {
-                progressManager.checkAndUpdateProgress(currentSteps: newValue)
+                mainViewModel.checkAndUpdateProgress(currentSteps: newValue)
                 
                 // Send encouraging notifications
                 NotificationManager.shared.scheduleEncouragingNotification(
@@ -417,7 +440,23 @@ struct StepView: View {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             withAnimation { showGoalReachedOverlay = true }
+            
+            if mainViewModel.shouldShowFeedbackPrompt() {
+                       DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                           withAnimation {
+                               showFeedbackPrompt = true
+                           }
+                       }
+                   }
         }
+    }
+    
+    // Add this to StepView
+
+
+    private func incrementGoalCompletionCount() {
+        let current = UserDefaults.standard.integer(forKey: "goalCompletionCount")
+        UserDefaults.standard.set(current + 1, forKey: "goalCompletionCount")
     }
     
     /// <#Description#>
@@ -446,6 +485,15 @@ struct StepView: View {
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                         withAnimation { appState.showChallengeCompletedOverlay = true }
+                    }
+                    
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                        if mainViewModel.shouldShowFeedbackPrompt() {
+                            withAnimation {
+                                self.showFeedbackPrompt = true
+                            }
+                        }
                     }
                 case .failure(let error):
                     print("❌ Failed to mark complete: \(error.localizedDescription)")
