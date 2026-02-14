@@ -303,6 +303,7 @@ struct StepView: View {
                 // Navigate to badges tab
                 appState.selectedTab = 3
                 
+            /*
                 // Show feedback prompt after dismissing badge spotlight
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if mainViewModel.shouldShowFeedbackPrompt() {
@@ -311,6 +312,7 @@ struct StepView: View {
                         }
                     }
                 }
+             */
             }
         }
         
@@ -454,6 +456,7 @@ struct StepView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             withAnimation { showGoalReachedOverlay = true }
             
+            /*
             if mainViewModel.shouldShowFeedbackPrompt() {
                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                            withAnimation {
@@ -461,6 +464,7 @@ struct StepView: View {
                            }
                        }
                    }
+             */
         }
     }
     

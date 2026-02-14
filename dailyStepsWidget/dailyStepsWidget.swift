@@ -45,6 +45,13 @@ struct Provider: AppIntentTimelineProvider {
         )
         var graceDays: Int = 0
     
+    private func getCurrentStepCount() -> Int {
+            guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
+                return 0
+            }
+            return defaults.integer(forKey: "currentStepCount")
+        }
+    
     
     //fetch request to core data extracted as a variable since it is used in multiple places
     var dayFetchRequest: NSFetchRequest<Day> {
@@ -61,8 +68,8 @@ struct Provider: AppIntentTimelineProvider {
         CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [], streak: 0, theme:
                         WidgetTheme(
                             primary: BackgroundColor.aurora.color,
-                            secondary: BackgroundColor.aurora.color
-                        )
+                            secondary: BackgroundColor.aurora.color,
+                        ) ,                 stepCount: 0
         )
     }
 
@@ -74,13 +81,15 @@ struct Provider: AppIntentTimelineProvider {
             let theme = loadWidgetTheme()
             let days = try viewContext.fetch(dayFetchRequest)
             let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
-            return  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme)
+            let stepCount = getCurrentStepCount()
+            return  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,  stepCount : stepCount )
         } catch {
             print("Widget failed to fetch days in the snapshot")
             return  CalendarEntry(date: Date(), configuration: configuration, days: [], streak: 0, theme: WidgetTheme(
                 primary: BackgroundColor.aurora.color,
                 secondary: BackgroundColor.aurora.color
-            ))
+            ) ,                 stepCount: 0
+            )
         }
         
         
@@ -95,8 +104,9 @@ struct Provider: AppIntentTimelineProvider {
             let theme = loadWidgetTheme()
            let days = try viewContext.fetch(dayFetchRequest)
             let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+            let stepCount = getCurrentStepCount()
             
-            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme)
+            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,                stepCount: stepCount )
             return Timeline(entries: [entry], policy: .atEnd)
         } catch {
             print("Widget failed to fetch days in the snapshot")
@@ -117,23 +127,15 @@ struct CalendarEntry: TimelineEntry {
     let days : [Day]
     let streak : Int
     let theme: WidgetTheme
+    let stepCount: Int
 
 }
 
 struct dailyStepsWidgetEntryView: View {
     var entry: Provider.Entry
-    @Environment(\.widgetFamily) var family
- 
     
     var body: some View {
-        switch family {
-        case .systemSmall:
-            SmallWidgetView(entry: entry)
-        case .accessoryInline:
-            InlineWidgetView(entry: entry)
-        @unknown default:
-            SmallWidgetView(entry: entry)
-        }
+        InlineWidgetView(entry: entry)
     }
 }
 
@@ -193,12 +195,25 @@ struct SmallWidgetView: View {
 
 // MARK: - Inline Widget (Lock Screen)
 struct InlineWidgetView: View {
-    let entry: Provider.Entry
+    let entry: CalendarEntry
     
     var body: some View {
         HStack(spacing: 4) {
-            Text("0 steps")
+            Image(systemName: "figure.walk")
+                .font(.system(size: 12, weight: .semibold))
+            Text(formatSteps(entry.stepCount))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
         }
+    }
+    
+    private func formatSteps(_ steps: Int) -> String {
+        if steps >= 10000 {
+            let k = Double(steps) / 1000.0
+            return String(format: "%.1fk", k)
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        return formatter.string(from: NSNumber(value: steps)) ?? "\(steps)"
     }
 }
 struct dailyStepsWidget: Widget {
@@ -236,9 +251,9 @@ extension ConfigurationAppIntent {
     CalendarEntry(date: .now, configuration: .smiley, days: [], streak: 0, theme: WidgetTheme(
         primary: BackgroundColor.aurora.color,
         secondary: BackgroundColor.aurora.color
-    ) )
+    ), stepCount : 0  )
     CalendarEntry(date: .now, configuration: .starEyes, days: [], streak: 0, theme:  WidgetTheme(
         primary: BackgroundColor.aurora.color,
         secondary: BackgroundColor.aurora.color
-    ))
+    ), stepCount : 0  )
 }

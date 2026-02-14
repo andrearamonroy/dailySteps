@@ -17,7 +17,13 @@ class HealthManager: ObservableObject {
     private let healthStore = HKHealthStore()
     
     @MainActor
-    @Published private(set) var stepCount : Int = 0
+    @Published private(set) var stepCount: Int = 0 {
+        didSet {
+            guard let sharedDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return }
+            sharedDefaults.set(stepCount, forKey: "currentStepCount")
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
     
     private let goalProvider: () -> Int
     

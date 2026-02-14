@@ -121,7 +121,7 @@ struct BadgeSpotlightView: View {
             }
             .scaleEffect(badgeScale)
             .opacity(badgeOpacity)
-            .offset(y: -30)
+            
 
             // ── Text + CTA ────────────────────────────────────────
             VStack(spacing: 20) {
