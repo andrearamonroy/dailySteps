@@ -14,7 +14,7 @@ struct HomeView: View {
     var body: some View {
         TabView(selection: $appState.selectedTab) {
             NavigationStack {
-                BadgesTabView()
+                BadgesView()
             }
             .tabItem {
                 Label("Badges", systemImage: "rosette")

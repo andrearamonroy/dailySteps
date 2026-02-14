@@ -164,6 +164,10 @@ struct EnrollmentWithChallenge: Identifiable {
     let totalDaysCompleted: Int
     let isActive: Bool
     let endReason: String?
+    let challengeIconName: String
+    let targetSteps: Int
+    let duration: Int
+    let completedAt: Date? 
     
     init(from enrollment: CKRecord, challenge: CKRecord) {
         self.enrollmentID = enrollment.recordID.recordName
@@ -175,6 +179,10 @@ struct EnrollmentWithChallenge: Identifiable {
         self.totalDaysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
         self.isActive = enrollment["isActive"] as? Bool ?? false
         self.endReason = enrollment["endReason"] as? String
+        self.challengeIconName = challenge.challengeIconName
+        self.targetSteps = challenge["targetSteps"] as? Int ?? 0
+        self.duration = challenge["duration"] as? Int ?? 0
+        self.completedAt = enrollment["completedAt"] as? Date
     }
 }
 

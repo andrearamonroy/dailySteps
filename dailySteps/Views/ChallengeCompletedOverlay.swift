@@ -179,8 +179,13 @@ struct ChallengeCompletedOverlay: View {
                     }
 
                     // Secondary - dismiss
-                    Button { dismissCard() } label: {
-                        Text("Keep Going!")
+                    // Secondary - dismiss
+                    Button {
+                        dismissCard()
+                        // Post notification to refresh challenges
+                        NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
+                    } label: {
+                        Text(totalDays == 1 ? "Awesome!" : "Keep Going!")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(Color(.secondaryLabel))
                     }

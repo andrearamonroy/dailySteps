@@ -294,7 +294,6 @@ struct StepView: View {
                     .zIndex(1000)
             }
         }
-        // ADD badge spotlight full screen cover
         .fullScreenCover(isPresented: $appState.showBadgeSpotlight) {
             BadgeSpotlightView(
                 challengeIconName: appState.completedChallengeIconName,
@@ -303,9 +302,17 @@ struct StepView: View {
             ) {
                 // Navigate to badges tab
                 appState.selectedTab = 3
+                
+                // Show feedback prompt after dismissing badge spotlight
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    if mainViewModel.shouldShowFeedbackPrompt() {
+                        withAnimation {
+                            showFeedbackPrompt = true
+                        }
+                    }
+                }
             }
         }
-       
         
         .overlay {
             if showGoalReachedOverlay, let challenge = activeChallenge {
@@ -344,6 +351,12 @@ struct StepView: View {
                 //appState.dismissChallengeListView = false
             }
         }
+        
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnded"))) { _ in
+            // Force refresh when challenge ends
+            loadActiveChallenge(forceRefresh: true)
+        }
+        
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnrolled"))) { _ in
             // Force refresh when user enrolls in a new challenge
             loadActiveChallenge(forceRefresh: true)
@@ -484,17 +497,11 @@ struct StepView: View {
                     appState.completedChallengeSteps    = targetSteps
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                        withAnimation { appState.showChallengeCompletedOverlay = true }
-                    }
-                    
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                        if mainViewModel.shouldShowFeedbackPrompt() {
-                            withAnimation {
-                                self.showFeedbackPrompt = true
-                            }
+                        withAnimation {
+                            self.appState.showChallengeCompletedOverlay = true
                         }
                     }
+                    
                 case .failure(let error):
                     print("❌ Failed to mark complete: \(error.localizedDescription)")
                 }
@@ -560,6 +567,9 @@ struct ChallengeGoalBanner: View {
     
     var challengeIconName: String {
         let id = challengeID.lowercased()
+        //test
+        if id.contains("first-challenge"){ return "10kMonday" }
+        
         if id.contains("10k-monday"){
             return "10kMonday"
         } else if id.contains("weekend-warrior") {
@@ -586,7 +596,7 @@ struct ChallengeGoalBanner: View {
         
         //change later to app's icon to default
         else {
-            return "challenge-10k-daily"
+            return "10k-monday"
         }
 
 

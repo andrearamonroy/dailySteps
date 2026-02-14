@@ -823,6 +823,13 @@ extension CloudKitManager {
             
             enrollmentRecord["deviceID"] = deviceID as CKRecordValue
             enrollmentRecord["username"] = username as CKRecordValue
+            
+            // ADD challengeID
+               if let challengeID = challenge["challengeID"] as? String {
+                   enrollmentRecord["challengeID"] = challengeID as CKRecordValue
+               }
+               
+            
             enrollmentRecord["challengeReference"] = CKRecord.Reference(
                 record: challenge,
                 action: .deleteSelf
@@ -1010,6 +1017,8 @@ extension CKRecord {
         }
         
         let id = challengeID.lowercased()
+        //test
+        if id.contains("first-challenge"){ return "10kMonday" }
         if id.contains("10k-monday"){
             return "10kMonday"
         } else if id.contains("weekend-warrior") {
@@ -1034,7 +1043,34 @@ extension CKRecord {
        }
         
         else {
-            return "challenge-10k-daily"
+            return "10k-monday"
+        }
+    }
+}
+
+extension CloudKitManager {
+    // Add this to CloudKitManager.swift
+
+    func markChallengeCompleted(enrollment: CKRecord, completion: @escaping (Result<Void, Error>) -> Void) {
+        enrollment["completedAt"] = Date() as CKRecordValue
+        enrollment["isActive"] = false as CKRecordValue
+        enrollment["endReason"] = "completed" as CKRecordValue
+        
+        publicDatabase.save(enrollment) { savedEnrollment, error in
+            if let error = error {
+                print("❌ Error marking challenge complete: \(error.localizedDescription)")
+                completion(.failure(error))
+                return
+            }
+            
+            print("✅ Challenge marked as completed")
+            
+            // Post notification to refresh UI
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
+            }
+            
+            completion(.success(()))
         }
     }
 }

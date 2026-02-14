@@ -36,12 +36,7 @@ class MainViewModel : ObservableObject {
     
     @Published var stepGoalHistoyManager = StepGoalHistoryManager()
     
-   lazy var healthManager = HealthManager(
-        goalProvider: { [weak self] in
-            //pass step goal from the user to the health kit manager so that we can compare to the goal and then save
-            self?.stepGoal ?? 0
-        }
-    )
+    var healthManager: HealthManager!
     
     private var notificationSentForDay = Date.distantPast
     private let calendar = Calendar.current
@@ -71,6 +66,10 @@ class MainViewModel : ObservableObject {
     
     init(){
 
+        
+        self.healthManager = HealthManager(goalProvider: { [weak self] in
+                   self?.stepGoal ?? 0
+               })
         
       
 //        // Load persisted colors from App Group
@@ -134,41 +133,56 @@ class MainViewModel : ObservableObject {
     
   */
     
-
-        
-        func checkAndUpdateProgress(currentSteps: Int) {
-            cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
-                switch result {
-                case .success:
-                    print("✅ Progress updated successfully")
-                    
-                    // Fetch updated enrollment to check for streak milestones
-                    self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
-                        if case .success(let (_, enrollment)) = enrollmentResult,
-                           let streak = enrollment["currentStreak"] as? Int {
-                            // Send challenge streak milestone notification
-                            NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
-                        }
-                    }
-                    
-                    // Increment challenge completion count
-                        let challengeDays = UserDefaults.standard.integer(forKey: "challengeDaysCompleted")
-                        UserDefaults.standard.set(challengeDays + 1, forKey: "challengeDaysCompleted")
+    func checkAndUpdateProgress(currentSteps: Int) {
+        cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
+            switch result {
+            case .success:
+                print("✅ Progress updated successfully")
+                
+                // Fetch updated enrollment to check status
+                self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
+                    if case .success(let (challenge, enrollment)) = enrollmentResult {
+                        let streak = enrollment["currentStreak"] as? Int ?? 0
+                        let isActive = enrollment["isActive"] as? Bool ?? true
+                        let duration = challenge["duration"] as? Int ?? 1
+                        let totalDaysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
                         
-                        // Show feedback prompt after 7 challenge days
-                        if challengeDays >= 7 && self.shouldShowFeedbackPrompt() {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                NotificationCenter.default.post(name: NSNotification.Name("ShowFeedbackPrompt"), object: nil)
+                        // Send challenge streak milestone notification
+                        NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
+                        
+                        // Check if challenge just completed
+                        if !isActive {
+                            print("🎉 Challenge is now complete - posting notification")
+                            DispatchQueue.main.async {
+                                NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
+                            }
+                            
+                            // Show feedback prompt after completing a full challenge
+                            if self.shouldShowFeedbackPrompt() {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                                    NotificationCenter.default.post(name: NSNotification.Name("ShowFeedbackPrompt"), object: nil)
+                                }
                             }
                         }
-                    
-                case .failure(let error):
-                    print("❌ Failed to update progress: \(error.localizedDescription)")
+                        // Show prompt after first successful day if challenge is multi-day
+                        else if duration > 1 && totalDaysCompleted == 1 {
+                            print("🎯 First day of multi-day challenge completed!")
+                            if self.shouldShowFeedbackPrompt() {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                    NotificationCenter.default.post(name: NSNotification.Name("ShowFeedbackPrompt"), object: nil)
+                                }
+                            }
+                        }
+                    }
                 }
+                
+            case .failure(let error):
+                print("❌ Failed to update progress: \(error.localizedDescription)")
             }
         }
-    
-   func shouldShowFeedbackPrompt() -> Bool {
+    }
+
+func shouldShowFeedbackPrompt() -> Bool {
         // Don't show more than once every 7 days
         if let lastPrompt = UserDefaults.standard.object(forKey: "lastFeedbackPromptDate") as? Date {
             let daysSinceLastPrompt = Calendar.current.dateComponents([.day], from: lastPrompt, to: Date()).day ?? 0
@@ -176,10 +190,7 @@ class MainViewModel : ObservableObject {
                 return false
             }
         }
-        
-        // Show after 5 successful goal completions
-        let goalCompletionCount = UserDefaults.standard.integer(forKey: "goalCompletionCount")
-        return goalCompletionCount >= 5
+        return true
     }
     
     
