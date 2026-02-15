@@ -69,14 +69,20 @@ struct WeeklyStepsView: View {
                                 .foregroundColor(isToday(date) ? .blue : .secondary)
                         }
                         .frame(width: dayWidth)
-                        .id(date)
+                        .id(Calendar.current.startOfDay(for: date))
                     }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 12)
             }
             .onAppear {
-                proxy.scrollTo(Date(), anchor: .center)
+                // Scroll to today's date using startOfDay
+                let today = Calendar.current.startOfDay(for: Date())
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {  // ← Add small delay
+                    withAnimation {
+                        proxy.scrollTo(today, anchor: .center)
+                    }
+                }
             }
         }
         .background(

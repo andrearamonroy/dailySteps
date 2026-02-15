@@ -14,6 +14,8 @@ struct StepGoalSettingsView: View {
     @State private var showCustomSheet = false
     @State private var customGoalText = ""
     @ObservedObject var themeManager = ThemeManager.shared
+    
+    @Environment(\.requestReview) private var requestReview
 
     var body: some View {
         ZStack {
@@ -59,6 +61,39 @@ struct StepGoalSettingsView: View {
                     ThemePickerView()
                 }
                 
+                Section(header: Text("Support")) {
+                    Button(action: {
+                        requestReview()
+                    }) {
+                        HStack {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.45, green: 0.55, blue: 1.0),
+                                            Color(red: 0.75, green: 0.45, blue: 1.0)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Text("Rate on App Store")
+                            Spacer()
+                        }
+                    }
+                    
+                    Button(action: {
+                        sendFeedbackEmail()
+                    }) {
+                        HStack {
+                            Image(systemName: "envelope.fill")
+                                .foregroundColor(.blue)
+                            Text("Send Feedback")
+                            Spacer()
+                        }
+                    }
+                }
+                
                 
                 
             }
@@ -70,6 +105,18 @@ struct StepGoalSettingsView: View {
             }
         }
 
+    }
+    
+    private func sendFeedbackEmail() {
+        let email = "thedailystepsapp@gmail.com"
+        let subject = "Daily Steps Feedback"
+        let body = "Hi there,\n\nI'd like to share some feedback:\n\n"
+        
+        if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+            if UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+        }
     }
 }
 

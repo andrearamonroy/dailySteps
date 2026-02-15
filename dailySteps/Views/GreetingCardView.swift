@@ -59,9 +59,9 @@ struct GreetingCardView: View {
 
                 Spacer()
 
-                // Animated emoji pulse
-                Text("🏃")
-                    .font(.system(size: 36))
+//                // Animated emoji pulse
+//                Text("🏃")
+//                    .font(.system(size: 36))
             }
 
             Divider()

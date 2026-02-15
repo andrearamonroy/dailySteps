@@ -181,7 +181,7 @@ class NotificationManager: ObservableObject {
         content.sound = .default
         
         var dateComponents = DateComponents()
-        dateComponents.hour = 20 // 8 PM
+        dateComponents.hour = 19 // 7 PM
         dateComponents.minute = 0
         
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)

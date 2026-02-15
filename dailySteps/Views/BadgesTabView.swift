@@ -1,18 +1,28 @@
 import SwiftUI
 import Foundation
 
+/// <#Description#>
+import SwiftUI
+import Foundation
+
 struct BadgesView: View {
     @EnvironmentObject var appState: AppState
     @State private var completedBadges: [EnrollmentWithChallenge] = []
     @State private var isLoading = false
+    @ObservedObject var themeManager = ThemeManager.shared
+    @State private var hasLoadedOnce = false
     
     var body: some View {
         NavigationStack {
             ZStack {
+                // Background
+                themeManager.backgroundColor
+                    .ignoresSafeArea()
+                
                 if isLoading {
                     ProgressView("Loading badges...")
                 } else if completedBadges.isEmpty {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 24) {
                         ZStack {
                             Circle()
                                 .fill(
@@ -39,6 +49,8 @@ struct BadgesView: View {
                                     )
                                 )
                         }
+                        .padding(.top, 8)
+                        
                         VStack(spacing: 8) {
                             Text("No Badges Yet")
                                 .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -48,8 +60,9 @@ struct BadgesView: View {
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
                         }
+                        
                         Button(action: {
-                            appState.selectedTab = 1 // Navigate to challenges tab
+                            appState.selectedTab = 1
                         }) {
                             HStack(spacing: 6) {
                                 Image(systemName: "trophy.fill")
@@ -77,8 +90,16 @@ struct BadgesView: View {
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .padding(.bottom, 8)
                     }
-                    .padding(32)
+                    .padding(.horizontal, 40)
+                    .padding(.vertical, 40)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                    )
+                    .padding(.horizontal, 24)
                 } else {
                     ScrollView {
                         VStack(spacing: 20) {
@@ -114,6 +135,12 @@ struct BadgesView: View {
             }
             .navigationTitle("Badges")
             .onAppear {
+                if !hasLoadedOnce {
+                        loadBadges()
+                        hasLoadedOnce = true
+                    }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeCompleted"))) { _ in
                 loadBadges()
             }
         }
@@ -145,6 +172,11 @@ struct BadgesView: View {
             }
         }
     }
+}
+
+#Preview("Empty State") {
+    BadgesView()
+        .environmentObject(AppState())
 }
 
 struct StatBadge: View {

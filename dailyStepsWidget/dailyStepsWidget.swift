@@ -222,11 +222,11 @@ struct dailyStepsWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
             dailyStepsWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+               // .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Daily Steps Widget")
-        .description("Track days you reach your step goal with streaks ⚡️⚡️ ")
-        .supportedFamilies([.systemMedium])
+        .configurationDisplayName("Daily Steps")
+        .description("Your daily step count")
+        .supportedFamilies([.accessoryInline])
     }
 }
 
