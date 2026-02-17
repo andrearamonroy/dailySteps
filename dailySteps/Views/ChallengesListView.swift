@@ -361,7 +361,8 @@ struct ChallengeDetailView: View {
                                         .tint(.white)
                                 } else {
                                     Image(systemName: "person.fill")
-                                    Text("Enroll Solo")
+                                    //later say enroll solo whent hey can enroll with friends but not now
+                                    Text("Enroll")
                                         .fontWeight(.semibold)
                                 }
                             }
