@@ -19,6 +19,7 @@ class HealthManager: ObservableObject {
     @MainActor
     @Published private(set) var stepCount: Int = 0 {
         didSet {
+            guard stepCount != oldValue else { return }
             guard let sharedDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return }
             sharedDefaults.set(stepCount, forKey: "currentStepCount")
             WidgetCenter.shared.reloadAllTimelines()
@@ -113,6 +114,7 @@ class HealthManager: ObservableObject {
             
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
+                guard stepInt != self.stepCount else { return }
                 
                 print("🔄 Updating steps: old=\(self.stepCount), new=\(stepInt)")
                 

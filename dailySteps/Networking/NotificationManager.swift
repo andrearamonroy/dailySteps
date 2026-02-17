@@ -41,7 +41,7 @@ class NotificationManager: ObservableObject {
         if progress < 0.25 {
             // Less than 25% - early motivation
             content.title = "Let's Get Moving! 🌟"
-            content.body = "You've got \(goalSteps - currentSteps) steps to go. Start strong!"
+            content.body = "You've got \(goalSteps - currentSteps) steps to go. Keep going!"
             triggerTime = 60 * 60 * 2 // 2 hours from now
             
         } else if progress < 0.50 {

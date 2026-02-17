@@ -106,8 +106,15 @@ struct Provider: AppIntentTimelineProvider {
             let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
             let stepCount = getCurrentStepCount()
             
+            
+            
             let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,                stepCount: stepCount )
-            return Timeline(entries: [entry], policy: .atEnd)
+            
+           
+                    let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+
+                    return Timeline(entries: [entry], policy: .after(midnight))
+
         } catch {
             print("Widget failed to fetch days in the snapshot")
             return Timeline(entries: [], policy: .after(.now.endOfDay))

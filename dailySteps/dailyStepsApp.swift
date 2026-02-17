@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import BackgroundTasks
+import WidgetKit
 
 @main
 struct dailyStepsApp: App {
@@ -27,6 +29,24 @@ struct dailyStepsApp: App {
 #if DEBUG
        // setupCloudKitmain()
 #endif
+        
+        
+        BGTaskScheduler.shared.register(
+               forTaskWithIdentifier: "com.andrearamonroy.dailySteps.refresh",
+               using: nil
+           ) { task in
+               guard let refreshTask = task as? BGAppRefreshTask else { return }
+               
+               // Reschedule for next midnight
+               Self.scheduleNextMidnightRefresh()
+               
+               // Reload widget
+               WidgetCenter.shared.reloadAllTimelines()
+               
+               refreshTask.setTaskCompleted(success: true)
+           }
+           
+           Self.scheduleNextMidnightRefresh()
     }
     
   
@@ -71,5 +91,12 @@ struct dailyStepsApp: App {
                 mainViewModel.healthManager.saveStepsForToday(stepCount: mainViewModel.healthManager.stepCount, context: persistenceController.container.viewContext)
             }
         }
+    }
+    
+    static func scheduleNextMidnightRefresh() {
+        let request = BGAppRefreshTaskRequest(identifier: "com.andrearamonroy.dailySteps.refresh")
+        let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+        request.earliestBeginDate = midnight
+        try? BGTaskScheduler.shared.submit(request)
     }
 }
