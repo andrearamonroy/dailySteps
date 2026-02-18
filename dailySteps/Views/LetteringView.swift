@@ -12,8 +12,8 @@ struct LetteringView: View {
     @State private var displayedText = ""
     @State private var showText = false
     
-    let fullText = "Daily Steps"
-    let typingSpeed: Double = 0.08
+    let fullText = "The Daily Steps"
+    let typingSpeed: Double = 0.10
     
     var body: some View {
         ZStack {

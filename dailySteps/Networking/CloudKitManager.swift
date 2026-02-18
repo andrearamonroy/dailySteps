@@ -39,11 +39,13 @@ class CloudKitManager : ObservableObject {
     private init() {
         // Safely initialize container with error catching
         do {
-            self.container = CKContainer(identifier: "iCloud.com.andrearamonroy.dailySteps")
-            self.privateDatabase = container.privateCloudDatabase
-            self.publicDatabase = container.publicCloudDatabase
             
-            print("CloudKit container initialized successfully")
+            self.container = CKContainer(identifier: "iCloud.com.andrearamonroy.dailySteps")
+                self.privateDatabase = container.privateCloudDatabase
+                self.publicDatabase = container.publicCloudDatabase
+                print("CloudKit container initialized successfully")
+            
+       
         } catch {
             print("CloudKit initialization failed: \(error)")
             fatalError("CloudKit setup failed")
