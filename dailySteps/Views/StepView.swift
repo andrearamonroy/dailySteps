@@ -6,6 +6,8 @@
 //
 import SwiftUI
 import CloudKit
+import AVFoundation
+
 struct StepView: View {
     @EnvironmentObject private var mainViewModel: MainViewModel
     @StateObject private var cloudKitManager = CloudKitManager.shared
@@ -16,7 +18,7 @@ struct StepView: View {
     @State private var lastFetchTime: Date?
     
     @EnvironmentObject var appState: AppState
-    
+    @State private var audioPlayer: AVAudioPlayer?
     private let cacheExpirationInterval: TimeInterval = 300 // 5 minutes
     
     var shouldRefreshChallenge: Bool {
@@ -315,6 +317,15 @@ struct StepView: View {
                 )
                 .transition(.opacity)
                 .zIndex(999)
+                .onAppear {
+                     try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                     try? AVAudioSession.sharedInstance().setActive(true)
+                     playWinSound()
+                 }
+                 .onDisappear {
+                     audioPlayer?.stop()
+                     audioPlayer = nil
+                 }
             }
         }
         
@@ -464,6 +475,8 @@ struct StepView: View {
         lastCelebrationDateStr = ISO8601DateFormatter().string(from: Date())
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            
+    
             withAnimation { showGoalReachedOverlay = true }
             
             /*
@@ -478,7 +491,16 @@ struct StepView: View {
         }
     }
     
-    // Add this to StepView
+   private func playWinSound() {
+         // Uses a system sound as fallback — replace "win" with your own .mp3/.wav asset name
+         if let url = Bundle.main.url(forResource: "win", withExtension: "mp3") {
+             audioPlayer = try? AVAudioPlayer(contentsOf: url)
+             audioPlayer?.play()
+         } else {
+             // Fallback to system sound
+             AudioServicesPlaySystemSound(1025) // "Fanfare" system sound
+         }
+     }
 
 
     private func incrementGoalCompletionCount() {

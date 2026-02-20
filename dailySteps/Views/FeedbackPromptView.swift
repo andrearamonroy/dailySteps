@@ -46,7 +46,7 @@ struct FeedbackPromptView: View {
                 }
                 
                 // Title
-                Text("Enjoying Daily Steps?")
+                Text("Enjoying The Daily Steps?")
                     .font(.title2)
                     .fontWeight(.bold)
                 

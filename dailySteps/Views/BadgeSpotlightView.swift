@@ -248,7 +248,7 @@ struct BadgeSpotlightView: View {
 
     // MARK: - Sound
 
-    private func playWinSound() {
+  private func playWinSound() {
         // Uses a system sound as fallback — replace "win" with your own .mp3/.wav asset name
         if let url = Bundle.main.url(forResource: "win", withExtension: "mp3") {
             audioPlayer = try? AVAudioPlayer(contentsOf: url)
