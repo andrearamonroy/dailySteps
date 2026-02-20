@@ -22,6 +22,7 @@ class HealthManager: ObservableObject {
             guard stepCount != oldValue else { return }
             guard let sharedDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return }
             sharedDefaults.set(stepCount, forKey: "currentStepCount")
+            sharedDefaults.set(Date(), forKey: "stepCountDate")
             WidgetCenter.shared.reloadAllTimelines()
         }
     }
@@ -122,10 +123,10 @@ class HealthManager: ObservableObject {
                 self.stepCount = stepInt
                 
                 let goal = self.currentGoal
-                if goal > 0 && stepInt >= goal {
+              
                     self.saveGoalReached()
                     print("✅ Goal reached! Saving to Core Data")
-                }
+            
                 
                 print("📊 Steps updated to: \(stepInt)")
             }
@@ -207,24 +208,20 @@ class HealthManager: ObservableObject {
         do {
             let existing = try context.fetch(request)
             let record = existing.first ?? Day(context: context)
-
             record.date = today
+            record.stepCount = Int64(self.stepCount) // always update
 
             let goal = self.currentGoal
-            
-            guard goal > 0, self.stepCount >= goal else {
-                return
+            if goal > 0 && self.stepCount >= goal && record.didSteps == false {
+                record.didSteps = true
+                print("✅ Goal reached — saved didSteps = true")
             }
 
-            if record.didSteps == false {
-                record.didSteps = true
-                try context.save()
-                refreshWidget()
-                print("✅ Reached step goal for today — saved didSteps = true")
-            }
+            try context.save()
+            refreshWidget()
 
         } catch {
-            print("❌ Error saving didSteps: \(error.localizedDescription)")
+            print("❌ Error saving: \(error.localizedDescription)")
         }
     }
 

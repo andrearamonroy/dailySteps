@@ -46,11 +46,15 @@ struct Provider: AppIntentTimelineProvider {
         var graceDays: Int = 0
     
     private func getCurrentStepCount() -> Int {
-            guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
-                return 0
-            }
-            return defaults.integer(forKey: "currentStepCount")
-        }
+        guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return 0 }
+        
+        // Check if the saved step count is from today
+        let savedDate = defaults.object(forKey: "stepCountDate") as? Date
+        let isToday = savedDate.map { Calendar.current.isDateInToday($0) } ?? false
+        
+        guard isToday else { return 0 } // new day → show 0 until first fetch
+        return defaults.integer(forKey: "currentStepCount")
+    }
     
     
     //fetch request to core data extracted as a variable since it is used in multiple places

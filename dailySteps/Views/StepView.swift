@@ -51,6 +51,7 @@ struct StepView: View {
                                    Date().endOfMonth as CVarArg))
         private var days: FetchedResults<Day>
     
+    @AppStorage("lastFeedbackPromptDate") private var lastFeedbackPromptDate: String = ""
     @State private var showFeedbackPrompt = false
     
     var body: some View {
@@ -256,19 +257,7 @@ struct StepView: View {
                 .zIndex(998)
             }
         }
-     
-        .overlay {
-            if showGoalReachedOverlay, let challenge = activeChallenge {
-                GoalReachedOverlay(
-                    challengeName: challenge["name"] as? String ?? "Challenge",
-                    targetSteps: challenge["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal),
-                    challengeIconName: challenge.challengeIconName,
-                    isShowing: $showGoalReachedOverlay
-                )
-                .transition(.opacity)
-                .zIndex(998)
-            }
-        }
+    
         // ADD challenge completed overlay
         .overlay {
             if appState.showChallengeCompletedOverlay {
@@ -315,7 +304,7 @@ struct StepView: View {
              */
             }
         }
-        
+        //1
         .overlay {
             if showGoalReachedOverlay, let challenge = activeChallenge {
                 GoalReachedOverlay(
@@ -328,6 +317,8 @@ struct StepView: View {
                 .zIndex(999)
             }
         }
+        
+        
         .onAppear {
             mainViewModel.healthManager.refreshTodaySteps()
             
@@ -369,9 +360,7 @@ struct StepView: View {
         }
         
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowFeedbackPrompt"))) { _ in
-            withAnimation {
-                showFeedbackPrompt = true
-            }
+            triggerFeedbackPromptIfNeeded()
         }
         .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
             loadActiveChallenge(forceRefresh: true)
@@ -393,6 +382,10 @@ struct StepView: View {
                 
                 // Check personal goal
                 if oldValue < mainViewModel.stepGoal && newValue >= mainViewModel.stepGoal {
+                    
+                    // Force a Core Data save immediately here
+                    try? viewContext.save()
+                    
                     NotificationManager.shared.sendGoalReachedNotification(type: .personal)
                     
                     // Send personal streak milestone
@@ -441,6 +434,23 @@ struct StepView: View {
         }
     }
       
+    
+    private func shouldShowFeedbackPrompt() -> Bool {
+        // Don't show if already shown today
+        if let last = ISO8601DateFormatter().date(from: lastFeedbackPromptDate),
+           Calendar.current.isDateInToday(last) {
+            return false
+        }
+        return mainViewModel.shouldShowFeedbackPrompt()
+    }
+
+    private func triggerFeedbackPromptIfNeeded() {
+        guard shouldShowFeedbackPrompt() else { return }
+        lastFeedbackPromptDate = ISO8601DateFormatter().string(from: Date())
+        withAnimation {
+            showFeedbackPrompt = true
+        }
+    }
     private func checkGoalCelebration(steps: Int) {
         let goal = activeChallenge?["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal)
         guard steps >= goal else { return }
