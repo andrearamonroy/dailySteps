@@ -194,6 +194,63 @@ class NotificationManager: ObservableObject {
         }
     }
     
+    // MARK: - Schedule Daily Encouragement Messages
+    func scheduleDailyEncouragementMessages() {
+        // Remove any existing encouragement notifications
+        let identifiers = (0..<10).map { "encouragement-\($0)" }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        
+        let messages: [(title: String, body: String)] = [
+            ("Every Step Counts! 👟", "Keep moving — small steps lead to big results."),
+            ("You've Got This! 💪", "Momentum builds one step at a time. Keep going!"),
+            ("Stay the Course! 🌟", "Consistency is your superpower. Don't stop now."),
+            ("Move Your Body! 🚶", "A little movement goes a long way. You've got this."),
+            ("Keep It Up! 🔥", "Progress is progress, no matter the pace."),
+            ("One Step at a Time! 🎯", "Don't think about the finish line — just the next step."),
+            ("Make It Count! ✨", "Every walk, every step — it all adds up."),
+            ("You're Doing Great! 🌈", "Be proud of yourself for showing up today."),
+            ("Stay Active! 🏃", "Your future self will thank you for moving today."),
+            ("Keep Moving Forward! 🚀", "Even slow progress is still progress. Keep at it!")
+        ]
+        
+        // Spread messages across the day from 8 AM to 8 PM (~every 1.5 hours)
+        let startHour = 8
+        let intervalMinutes = 90
+        
+        for (index, message) in messages.enumerated() {
+            let content = UNMutableNotificationContent()
+            content.title = message.title
+            content.body = message.body
+            content.sound = .default
+            
+            var dateComponents = DateComponents()
+            let totalMinutes = startHour * 60 + index * intervalMinutes
+            dateComponents.hour = totalMinutes / 60
+            dateComponents.minute = totalMinutes % 60
+            
+            // Only schedule within reasonable hours (before 9 PM)
+            guard (dateComponents.hour ?? 0) < 21 else { break }
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+            let request = UNNotificationRequest(identifier: "encouragement-\(index)", content: content, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("❌ Error scheduling encouragement message \(index): \(error.localizedDescription)")
+                } else {
+                    print("✅ Encouragement message \(index) scheduled at \(dateComponents.hour ?? 0):\(String(format: "%02d", dateComponents.minute ?? 0))")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Cancel Daily Encouragement Messages
+    func cancelDailyEncouragementMessages() {
+        let identifiers = (0..<10).map { "encouragement-\($0)" }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        print("🔕 Daily encouragement messages cancelled")
+    }
+    
     // MARK: - Cancel All Notifications
     func cancelAllNotifications() {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()

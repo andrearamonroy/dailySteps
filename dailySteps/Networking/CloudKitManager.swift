@@ -709,39 +709,48 @@ extension CloudKitManager {
         enrollment: CKRecord,
         completion: @escaping (Bool) -> Void
     ) {
-        guard let startDate = enrollment["startDate"] as? Date,
-              let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference,
-              let lastCompletedDate = enrollment["lastCompletedDate"] as? Date? else {
-            // First day or can't check - continue
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let now = Date()
+
+        guard let startDate = enrollment["startDate"] as? Date else {
             completion(true)
             return
         }
-        
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+
         let enrollmentStartDay = calendar.startOfDay(for: startDate)
-        
-        // If enrolled today, don't check yet
+
+        // If enrolled today, never check yet
         if calendar.isDate(enrollmentStartDay, inSameDayAs: today) {
             completion(true)
             return
         }
-        
-        // Check if there's a gap between last completed date and today
-        if let lastCompleted = lastCompletedDate {
-            let daysSinceLastCompleted = calendar.dateComponents([.day], from: calendar.startOfDay(for: lastCompleted), to: today).day ?? 0
-            
-            // If more than 1 day gap (meaning they missed yesterday), end challenge
-            if daysSinceLastCompleted > 1 {
-                print("Gap detected: \(daysSinceLastCompleted) days since last completion. Ending challenge.")
-                self.endChallenge(enrollment: enrollment) { _ in
-                    completion(false)
-                }
-                return
-            }
+
+        // Don't check until end of day — only check yesterday's steps
+        // But only if it's a new day (past midnight), and the previous day is fully done
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        // Make sure the enrollment started before or on yesterday
+        guard calendar.startOfDay(for: startDate) <= yesterday else {
+            completion(true)
+            return
         }
-        
-        // Fetch the challenge to get target steps
+
+        let lastCompleted = enrollment["lastCompletedDate"] as? Date
+
+        // If we already marked yesterday complete, no need to check
+        if let lastCompleted = lastCompleted,
+           calendar.isDate(lastCompleted, inSameDayAs: yesterday) {
+            completion(true)
+            return
+        }
+
+        // Fetch challenge target
+        guard let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference else {
+            completion(true)
+            return
+        }
+
         publicDatabase.fetch(withRecordID: challengeRef.recordID) { [weak self] challenge, error in
             guard let self = self,
                   let challenge = challenge,
@@ -749,34 +758,22 @@ extension CloudKitManager {
                 completion(true)
                 return
             }
-            
-            // Check yesterday's steps
-            let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
             let yesterdayStart = calendar.startOfDay(for: yesterday)
             let yesterdayEnd = calendar.date(byAdding: .day, value: 1, to: yesterdayStart)!
-            
-            // Get yesterday's step count from HealthKit
+
             self.getStepCount(for: yesterdayStart, to: yesterdayEnd) { steps in
                 if steps < targetSteps {
-                    // Missed goal yesterday - end the challenge
-                    print(" Goal not met yesterday (\(steps)/\(targetSteps) steps). Ending challenge.")
-                    self.endChallenge(enrollment: enrollment) { _ in
+                    print("Goal not met yesterday (\(steps)/\(targetSteps)). Ending challenge.")
+                    self.endChallenge(enrollment: enrollment, reason: "missed_goal") { _ in
                         completion(false)
                     }
                 } else {
-                    // Goal was met, but update last completed date if needed
-                    print(" Yesterday's goal met (\(steps)/\(targetSteps) steps)")
-                    
-                    // Update last completed date to yesterday if it wasn't updated
-                    if lastCompletedDate == nil || !calendar.isDate(lastCompletedDate!, inSameDayAs: yesterday) {
-                        enrollment["lastCompletedDate"] = yesterday as CKRecordValue
-                        let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
-                        enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
-                        
-                        self.publicDatabase.save(enrollment) { _, _ in
-                            completion(true)
-                        }
-                    } else {
+                    print("Yesterday's goal met (\(steps)/\(targetSteps))")
+                    enrollment["lastCompletedDate"] = yesterday as CKRecordValue
+                    let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
+                    enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
+                    self.publicDatabase.save(enrollment) { _, _ in
                         completion(true)
                     }
                 }

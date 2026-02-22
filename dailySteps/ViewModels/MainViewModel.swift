@@ -215,7 +215,12 @@ func shouldShowFeedbackPrompt() -> Bool {
                 var dateComponents = DateComponents()
                 dateComponents.hour = 9
                 dateComponents.minute = 0
+                
+                //reminders with streak count
                 NotificationManager.shared.scheduleDailyGoalReminder(at: dateComponents)
+                
+                //reminders with encouragement messages. 
+                NotificationManager.shared.scheduleDailyEncouragementMessages()
             }
         }
     }
