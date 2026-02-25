@@ -15,7 +15,7 @@ import WidgetKit
 class MainViewModel : ObservableObject {
     //Step Goal for the user the change
     /// AppStorage works with swiftui
-    @AppStorage("stepGoal") var stepGoal : Int = 10_000 {
+    @AppStorage("stepGoal", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")) var stepGoal : Int = 10_000 {
         didSet {
             print("oldValue = \(oldValue), newValue = \(stepGoal)")
             
@@ -23,8 +23,11 @@ class MainViewModel : ObservableObject {
             stepGoalHistoyManager.addChange(goal: stepGoal)
             
             print("Step goal actually changed from \(oldValue) to \(stepGoal). Save it!")
+            
+            WidgetCenter.shared.reloadTimelines(ofKind: "dailyStepsWidget")
         }
     }
+    
     
     //including the group so that the widget has access to the grace days 
     @AppStorage(

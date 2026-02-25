@@ -12,7 +12,7 @@ import CoreData
 struct WeeklyStepsView: View {
     @Environment(\.managedObjectContext) private var viewContext
     @EnvironmentObject private var mainViewModel: MainViewModel
-    @AppStorage("stepGoal") var stepGoal: Int = 10_000
+    @AppStorage("stepGoal", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")) var stepGoal: Int = 10_000
 
     @FetchRequest private var days: FetchedResults<Day>
     

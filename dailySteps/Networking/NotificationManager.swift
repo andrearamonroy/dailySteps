@@ -27,6 +27,13 @@ class NotificationManager: ObservableObject {
     
     // MARK: - Schedule Encouraging Messages Based on Progress
     func scheduleEncouragingNotification(currentSteps: Int, goalSteps: Int) {
+        
+        // If goal already met, no point in motivating further
+           guard currentSteps < goalSteps else {
+               UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["encouragingMessage"])
+               return
+           }
+        
         // Remove any existing encouraging notifications
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["encouragingMessage"])
         
@@ -171,25 +178,58 @@ class NotificationManager: ObservableObject {
     }
     
     // MARK: - Evening Reminder (if goal not met)
-    func scheduleEveningReminderIfNeeded(currentSteps: Int, goalSteps: Int) {
-        // Only send if goal not met
-        guard currentSteps < goalSteps else { return }
+    // MARK: - Evening Reminder (if goal not met)
+    func scheduleEveningReminderIfNeeded(currentSteps: Int, goalSteps: Int, challengeSteps: Int? = nil) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["eveningReminder"])
         
+        let personalGoalMet = currentSteps >= goalSteps
+        let challengeGoalMet = challengeSteps.map { currentSteps >= $0 } ?? false
+        let eitherGoalMet = personalGoalMet || challengeGoalMet
+
         let content = UNMutableNotificationContent()
-        content.title = "Evening Check-In 🌙"
-        content.body = "You still have \(goalSteps - currentSteps) steps to reach your goal today!"
         content.sound = .default
-        
+
+        let motivationalQuotes = [
+            "Hard work today is tomorrow's reward. Rest well! 🌟",
+            "You showed up and gave it your all. 💪",
+            "Every step you took today is an investment in a healthier you. 🏆",
+            "Discipline beats motivation every time — and you proved it today. 🔥",
+            "Your body moved, your mind grew stronger. See you tomorrow! ✨",
+            "Rest is part of the journey. You earned it today. 🌙",
+            "One day at a time, one step at a time. You crushed it. 🎯"
+        ]
+
+        let randomQuote = motivationalQuotes.randomElement() ?? motivationalQuotes[0]
+
+        if eitherGoalMet {
+            if personalGoalMet && challengeGoalMet {
+                content.title = "Double Goal Crusher! 🏆🔥"
+                content.body = "You hit BOTH your personal and challenge goals today. \(randomQuote)"
+            } else if challengeGoalMet {
+                content.title = "Challenge Goal Conquered! 🏆"
+                content.body = "You smashed today's challenge target. \(randomQuote)"
+            } else {
+                content.title = "Personal Goal Done! 🎉"
+                content.body = "You hit your step goal today. \(randomQuote)"
+            }
+        } else {
+            let stepsLeft = goalSteps - currentSteps
+            content.title = "Evening Check-In 🌙"
+            content.body = "You're \(stepsLeft) steps away from your goal. One last push — you've got this!"
+        }
+
         var dateComponents = DateComponents()
-        dateComponents.hour = 19 // 7 PM
+        dateComponents.hour = 20
         dateComponents.minute = 0
-        
+
         let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
         let request = UNNotificationRequest(identifier: "eveningReminder", content: content, trigger: trigger)
-        
+
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("❌ Error scheduling evening reminder: \(error.localizedDescription)")
+            } else {
+                print("✅ Evening reminder scheduled (goal met: \(eitherGoalMet))")
             }
         }
     }

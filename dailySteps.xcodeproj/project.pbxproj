@@ -87,6 +87,7 @@
 				"Extensions/Date+Ext.swift",
 				Persistence.swift,
 				Views/CalendarHeaderView.swift,
+				Views/CalendarView.swift,
 			);
 			target = 0D4AA5852F046BAC00DF5F83 /* dailyStepsWidgetExtension */;
 		};
@@ -623,7 +624,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = dailySteps/dailySteps.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"dailySteps/Preview Content\"";
 				DEVELOPMENT_TEAM = 54WBT8TSTM;
 				ENABLE_PREVIEWS = YES;
@@ -662,7 +663,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = dailySteps/dailySteps.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"dailySteps/Preview Content\"";
 				DEVELOPMENT_TEAM = 54WBT8TSTM;
 				ENABLE_PREVIEWS = YES;

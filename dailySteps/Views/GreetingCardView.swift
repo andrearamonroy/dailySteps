@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Greeting Card View
 
 struct GreetingCardView: View {
-    @AppStorage("username") private var username: String = ""
-
+    @AppStorage("username", store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")) private var username: String = ""
+    
     // Rotates every time the view appears
     @State private var messageIndex: Int = 0
 

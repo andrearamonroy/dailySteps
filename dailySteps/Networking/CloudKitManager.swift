@@ -711,7 +711,6 @@ extension CloudKitManager {
     ) {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        let now = Date()
 
         guard let startDate = enrollment["startDate"] as? Date else {
             completion(true)
@@ -720,32 +719,38 @@ extension CloudKitManager {
 
         let enrollmentStartDay = calendar.startOfDay(for: startDate)
 
-        // If enrolled today, never check yet
+        // If enrolled today, nothing to check yet
         if calendar.isDate(enrollmentStartDay, inSameDayAs: today) {
             completion(true)
             return
         }
 
-        // Don't check until end of day — only check yesterday's steps
-        // But only if it's a new day (past midnight), and the previous day is fully done
         let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
 
         // Make sure the enrollment started before or on yesterday
-        guard calendar.startOfDay(for: startDate) <= yesterday else {
+        guard enrollmentStartDay <= yesterday else {
             completion(true)
             return
         }
 
         let lastCompleted = enrollment["lastCompletedDate"] as? Date
 
-        // If we already marked yesterday complete, no need to check
+        // If we already marked yesterday complete, no need to re-check
+        // But DO check if the challenge duration is now fully complete
         if let lastCompleted = lastCompleted,
            calendar.isDate(lastCompleted, inSameDayAs: yesterday) {
-            completion(true)
+            
+            // Still need to check if challenge is fully done
+            checkIfChallengeFullyCompleted(
+                enrollment: enrollment,
+                startDay: enrollmentStartDay,
+                today: today,
+                calendar: calendar,
+                completion: completion
+            )
             return
         }
 
-        // Fetch challenge target
         guard let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference else {
             completion(true)
             return
@@ -758,6 +763,9 @@ extension CloudKitManager {
                 completion(true)
                 return
             }
+
+            // Pull duration here so we have it for completion check
+            let durationDays = (challenge["durationDays"] as? Int) ?? 0
 
             let yesterdayStart = calendar.startOfDay(for: yesterday)
             let yesterdayEnd = calendar.date(byAdding: .day, value: 1, to: yesterdayStart)!
@@ -773,10 +781,57 @@ extension CloudKitManager {
                     enrollment["lastCompletedDate"] = yesterday as CKRecordValue
                     let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
                     enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
-                    self.publicDatabase.save(enrollment) { _, _ in
-                        completion(true)
+
+                    // Calculate how many days have elapsed since start (inclusive of start day)
+                    let daysElapsed = calendar.dateComponents([.day], from: enrollmentStartDay, to: today).day ?? 0
+
+                    let challengeFullyComplete = durationDays > 0 && daysElapsed >= durationDays
+
+                    self.publicDatabase.save(enrollment) { _, error in
+                        if challengeFullyComplete {
+                            print("Challenge fully completed after \(daysElapsed) days!")
+                            self.endChallenge(enrollment: enrollment, reason: "completed") { _ in
+                                completion(false) // false = challenge is now over (successfully)
+                            }
+                        } else {
+                            completion(true) // still ongoing
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    // Separate helper to avoid duplicating the duration logic
+    private func checkIfChallengeFullyCompleted(
+        enrollment: CKRecord,
+        startDay: Date,
+        today: Date,
+        calendar: Calendar,
+        completion: @escaping (Bool) -> Void
+    ) {
+        guard let challengeRef = enrollment["challengeReference"] as? CKRecord.Reference else {
+            completion(true)
+            return
+        }
+
+        publicDatabase.fetch(withRecordID: challengeRef.recordID) { [weak self] challenge, error in
+            guard let self = self,
+                  let challenge = challenge,
+                  let durationDays = challenge["durationDays"] as? Int else {
+                completion(true)
+                return
+            }
+
+            let daysElapsed = calendar.dateComponents([.day], from: startDay, to: today).day ?? 0
+
+            if durationDays > 0 && daysElapsed >= durationDays {
+                print("Challenge fully completed after \(daysElapsed) days!")
+                self.endChallenge(enrollment: enrollment, reason: "completed") { _ in
+                    completion(false)
+                }
+            } else {
+                completion(true)
             }
         }
     }

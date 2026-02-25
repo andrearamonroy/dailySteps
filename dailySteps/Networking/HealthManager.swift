@@ -119,6 +119,12 @@ class HealthManager: ObservableObject {
                 
                 print("🔄 Updating steps: old=\(self.stepCount), new=\(stepInt)")
                 
+                // Never overwrite a real step count with zero
+                guard stepInt > 0 || self.stepCount == 0 else {
+                    print("⚠️ Ignoring zero step update — keeping current count: \(self.stepCount)")
+                    return
+                }
+                
                 // Always update to trigger UI refresh
                 self.stepCount = stepInt
                 

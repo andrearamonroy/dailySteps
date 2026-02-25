@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-import SwiftUI
+import WidgetKit
 
 class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
@@ -25,5 +25,6 @@ class ThemeManager: ObservableObject {
     func setBackground(_ color: BackgroundColor) {
         self.backgroundColor = color.color
         defaults?.set(color.rawValue, forKey: "backgroundColor")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

@@ -161,7 +161,18 @@ struct ChallengesListView: View {
                 case .success(let fetchedChallenges):
                     self.challenges = fetchedChallenges
                 case .failure(let error):
-                    self.errorMessage = "Failed to load challenges: \(error.localizedDescription)"
+                    if let ckError = error as? CKError {
+                        switch ckError.code {
+                        case .unknownItem:
+                            self.errorMessage = "Challenge record type not found in CloudKit. Schema may not be deployed to production."
+                        case .notAuthenticated:
+                            self.errorMessage = "Please sign in to iCloud to load challenges."
+                        default:
+                            self.errorMessage = "Failed to load challenges: \(ckError.localizedDescription)"
+                        }
+                    } else {
+                        self.errorMessage = "Failed to load challenges: \(error.localizedDescription)"
+                    }
                 }
             }
         }

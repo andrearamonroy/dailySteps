@@ -60,12 +60,15 @@ extension Date {
 //        let startDate = Calendar.current.date(byAdding: .day, value: -numberOfPrefixDays, to: startOfMonth)!
 //        return startDate
 //    }
+    
+    
+    //MARK:
+    //nows starts on sunday 
     var startOfCalendarWithPrefixDays: Date {
         let start = self.startOfMonth
         let weekday = Calendar.current.component(.weekday, from: start)
-
-        // In Calendar, Sunday = 1, Monday = 2, ..., Saturday = 7
-        let daysToSubtract = (weekday + 5) % 7  // Converts Sunday-start to Monday-start
+        // Sunday = 1, so subtract (weekday - 1) days to align to Sunday
+        let daysToSubtract = weekday - 1
         return Calendar.current.date(byAdding: .day, value: -daysToSubtract, to: start)!
     }
     

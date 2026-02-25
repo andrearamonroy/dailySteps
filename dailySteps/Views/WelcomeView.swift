@@ -138,11 +138,15 @@ struct WelcomeView: View {
     private func saveAndFinish() {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        UserDefaults.standard.set(trimmed, forKey: FieldKey.UserProfile.username)
+        // Use the app group suite for everything so the widget and viewmodel can read it
+        let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")
+        defaults?.set(trimmed, forKey: FieldKey.UserProfile.username)
+        defaults?.set(stepGoal, forKey: "stepGoal")
+
+        // These can stay on standard since they're app-only
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
         let deviceID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         UserDefaults.standard.set(deviceID, forKey: FieldKey.UserProfile.deviceID)
-        UserDefaults.standard.set(stepGoal, forKey: "stepGoal")
-        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
 
         let impact = UIImpactFeedbackGenerator(style: .heavy)
         impact.impactOccurred()
