@@ -39,10 +39,14 @@ struct CalendarView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
-                if days.isEmpty {
+                let calendar = Calendar.current
+                let currentMonthDays = days.filter {
+                    guard let date = $0.date else { return false }
+                    return calendar.isDate(date, equalTo: .now, toGranularity: .month)
+                }
+                
+                if currentMonthDays.isEmpty {
                     createMonthDays(for: .now.startOfPreviousMonth)
-                    createMonthDays(for: .now)
-                } else if days.count < 10 {
                     createMonthDays(for: .now)
                 }
             }
@@ -97,27 +101,55 @@ struct DayCell: View {
     let isToday: Bool
 
     var body: some View {
-        ZStack {
-            if day.didSteps {
-                Circle()
-                    .fill(Color.green)
-            }
+        VStack(spacing: 2) {
+            ZStack {
+                if day.didSteps {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 36, height: 36)
+                }
 
-            Text(day.date?.formatted(.dateTime.day()) ?? "")
-                .font(.system(size: 16, weight: day.didSteps ? .bold : .regular))
-                .foregroundStyle(foregroundColor)
+                Text(day.date?.formatted(.dateTime.day()) ?? "")
+                    .font(.system(size: 16, weight: day.didSteps ? .bold : .regular))
+                    .foregroundStyle(foregroundColor)
+            }
+            .frame(width: 36, height: 36)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isToday ? Color.blue : Color.clear, lineWidth: 2)
+            )
+
+            Text(formatSteps(Int(day.stepCount)))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(day.didSteps ? .green : .secondary)
+                .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, minHeight: 44)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(isToday ? Color.blue : Color.clear, lineWidth: 2)
-        )
+        .frame(maxWidth: .infinity, minHeight: 54)
     }
 
     var foregroundColor: Color {
         if day.didSteps { return .white }
         if isToday { return .blue }
         return .secondary
+    }
+
+    private func formatSteps(_ steps: Int) -> String {
+        switch steps {
+        case 0:
+            return ""
+        case 1_000..<10_000:
+            let value = Double(steps) / 1000.0
+            return value.truncatingRemainder(dividingBy: 1) == 0
+                ? "\(Int(value))k"
+                : String(format: "%.1fk", value)
+        case 10_000...:
+            let value = Double(steps) / 1000.0
+            return value.truncatingRemainder(dividingBy: 1) == 0
+                ? "\(Int(value))k"
+                : String(format: "%.1fk", value)
+        default:
+            return "\(steps)"
+        }
     }
 }
 

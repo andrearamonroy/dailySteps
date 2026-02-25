@@ -23,15 +23,18 @@ func loadWidgetTheme() -> WidgetTheme {
 
 struct Provider: AppIntentTimelineProvider {
     //using core data persistence container view context in the widget to display data
-    let viewContext = PersistenceController.shared.container.viewContext
+    private var viewContext: NSManagedObjectContext {
+        PersistenceController.shared.container.viewContext
+    }
 
     
     // Shared AppStorage for graceDays
-        @AppStorage(
-            "graceDays",
-            store: UserDefaults(suiteName: "group.com.yourapp.streak")
-        )
-        var graceDays: Int = 0
+    //including the group so that the widget has access to the grace days
+    @AppStorage(
+        "graceDays",
+        store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")
+    )
+    var graceDays: Int = 0
     
     private func getCurrentStepCount() -> Int {
         guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return 0 }
@@ -91,11 +94,12 @@ struct Provider: AppIntentTimelineProvider {
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<CalendarEntry> {
-      
+       
+        
 
         do {
             let theme = loadWidgetTheme()
-           let days = try viewContext.fetch(dayFetchRequest)
+            let days = try viewContext.fetch(dayFetchRequest)
             let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
             let stepCount = getCurrentStepCount()
             let stepGoal = getCurrentGoal()
@@ -103,10 +107,10 @@ struct Provider: AppIntentTimelineProvider {
             
             let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,                stepCount: stepCount, stepGoal: stepGoal )
             
-           
-                    let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
-
-                    return Timeline(entries: [entry], policy: .after(midnight))
+            
+            let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+            
+            return Timeline(entries: [entry], policy: .after(midnight))
 
         } catch {
             print("Widget failed to fetch days in the snapshot")

@@ -1,9 +1,11 @@
 import SwiftUI
 import Foundation
 
-/// <#Description#>
+
 import SwiftUI
 import Foundation
+
+
 
 struct BadgesView: View {
     @EnvironmentObject var appState: AppState
@@ -11,134 +13,181 @@ struct BadgesView: View {
     @State private var isLoading = false
     @ObservedObject var themeManager = ThemeManager.shared
     @State private var hasLoadedOnce = false
+    @State private var selectedTab: Int = 0  // 0 = Badges, 1 = Calendar
     
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 themeManager.backgroundColor
                     .ignoresSafeArea()
                 
-                if isLoading {
-                    ProgressView("Loading badges...")
-                } else if completedBadges.isEmpty {
-                    VStack(spacing: 24) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 0.45, green: 0.55, blue: 1.0).opacity(0.15),
-                                            Color(red: 0.75, green: 0.45, blue: 1.0).opacity(0.15)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .frame(width: 110, height: 110)
-                            Image(systemName: "rosette")
-                                .font(.system(size: 48))
-                                .foregroundStyle(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(red: 0.45, green: 0.55, blue: 1.0),
-                                            Color(red: 0.75, green: 0.45, blue: 1.0)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                        }
-                        .padding(.top, 8)
-                        
-                        VStack(spacing: 8) {
-                            Text("No Badges Yet")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(Color(.label))
-                            Text("Enroll in a challenge and\nearn your first badge!")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button(action: {
-                            appState.selectedTab = 1
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "trophy.fill")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Browse Challenges")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 24)
-                            .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.45, green: 0.55, blue: 1.0),
-                                        Color(red: 0.75, green: 0.45, blue: 1.0)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(Capsule())
-                            .shadow(
-                                color: Color(red: 0.55, green: 0.45, blue: 1.0).opacity(0.35),
-                                radius: 10, x: 0, y: 4
-                            )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .padding(.bottom, 8)
+                VStack(spacing: 0) {
+                    // Segmented Control
+                    Picker("View", selection: $selectedTab) {
+                        Text("Badges").tag(0)
+                        Text("Calendar").tag(1)
                     }
-                    .padding(.horizontal, 40)
-                    .padding(.vertical, 40)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-                    )
-                    .padding(.horizontal, 24)
-                } else {
-                    ScrollView {
-                        VStack(spacing: 20) {
-                            // Header stats
-                            HStack(spacing: 20) {
-                                StatBadge(
-                                    icon: "trophy.fill",
-                                    value: "\(completedBadges.count)",
-                                    label: "Badges",
-                                    color: .orange
-                                )
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    
+                    // Content
+                    if selectedTab == 1 {
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                HStack(spacing: 12) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(LinearGradient(
+                                            colors: [Color(red: 0.45, green: 0.55, blue: 1.0), Color(red: 0.75, green: 0.45, blue: 1.0)],
+                                            startPoint: .top, endPoint: .bottom
+                                        ))
+                                        .frame(width: 5, height: 36)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Personal Goal Tracker")
+                                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                                            .foregroundColor(Color(.label))
+                                        Text("Your monthly progress")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 16)
+                                .padding(.bottom, 8)
                                 
-                                StatBadge(
-                                    icon: "flame.fill",
-                                    value: "\(totalDaysCompleted)",
-                                    label: "Days",
-                                    color: .red
-                                )
+                                CalendarView()
+                                    .environment(\.managedObjectContext, PersistenceController.shared.container.viewContext)
+                                    .background(Color(.systemBackground))
+                                    .cornerRadius(16)
+                                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                                    .padding(16)
                             }
-                            .padding(.horizontal)
-                            .padding(.top, 8)
-                            
-                            // Badges grid
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 16) {
-                                ForEach(completedBadges, id: \.enrollmentID) { badge in
-                                    BadgeCard(badge: badge)
+                        }
+                    } else {
+                        ScrollView {
+                            VStack {
+                                if isLoading {
+                                    ProgressView("Loading badges...")
+                                } else if completedBadges.isEmpty {
+                                    VStack(spacing: 24) {
+                                        ZStack {
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color(red: 0.45, green: 0.55, blue: 1.0).opacity(0.15),
+                                                            Color(red: 0.75, green: 0.45, blue: 1.0).opacity(0.15)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                                .frame(width: 110, height: 110)
+                                            Image(systemName: "rosette")
+                                                .font(.system(size: 48))
+                                                .foregroundStyle(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color(red: 0.45, green: 0.55, blue: 1.0),
+                                                            Color(red: 0.75, green: 0.45, blue: 1.0)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        }
+                                        .padding(.top, 8)
+                                        
+                                        VStack(spacing: 8) {
+                                            Text("No Badges Yet")
+                                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                                .foregroundColor(Color(.label))
+                                            Text("Enroll in a challenge and\nearn your first badge!")
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .multilineTextAlignment(.center)
+                                        }
+                                        
+                                        Button(action: {
+                                            appState.selectedTab = 2
+                                        }) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "trophy.fill")
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                Text("Browse Challenges")
+                                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding(.vertical, 12)
+                                            .padding(.horizontal, 24)
+                                            .background(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color(red: 0.45, green: 0.55, blue: 1.0),
+                                                        Color(red: 0.75, green: 0.45, blue: 1.0)
+                                                    ],
+                                                    startPoint: .leading,
+                                                    endPoint: .trailing
+                                                )
+                                            )
+                                            .clipShape(Capsule())
+                                            .shadow(
+                                                color: Color(red: 0.55, green: 0.45, blue: 1.0).opacity(0.35),
+                                                radius: 10, x: 0, y: 4
+                                            )
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .padding(.bottom, 8)
+                                    }
+                                    .padding(.horizontal, 40)
+                                    .padding(.vertical, 40)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .fill(Color(.systemBackground))
+                                            .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
+                                    )
+                                    .padding(.horizontal, 24)
+                                    .padding(.top, 16)
+                                } else {
+                                    VStack(spacing: 20) {
+                                        HStack(spacing: 20) {
+                                            StatBadge(
+                                                icon: "trophy.fill",
+                                                value: "\(completedBadges.count)",
+                                                label: "Badges",
+                                                color: .orange
+                                            )
+                                            StatBadge(
+                                                icon: "flame.fill",
+                                                value: "\(totalDaysCompleted)",
+                                                label: "Days",
+                                                color: .red
+                                            )
+                                        }
+                                        .padding(.horizontal)
+                                        .padding(.top, 8)
+                                        
+                                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 16) {
+                                            ForEach(completedBadges, id: \.enrollmentID) { badge in
+                                                BadgeCard(badge: badge)
+                                            }
+                                        }
+                                        .padding()
+                                    }
                                 }
                             }
-                            .padding()
                         }
                     }
                 }
             }
-            .navigationTitle("Badges")
+            .navigationTitle(selectedTab == 0 ? "Badges" : "Calendar")
+            .id(selectedTab)
             .onAppear {
                 if !hasLoadedOnce {
-                        loadBadges()
-                        hasLoadedOnce = true
-                    }
+                    loadBadges()
+                    hasLoadedOnce = true
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeCompleted"))) { _ in
                 loadBadges()
@@ -152,20 +201,15 @@ struct BadgesView: View {
     
     private func loadBadges() {
         isLoading = true
-        
         CloudKitManager.shared.fetchAllEnrollmentsWithChallengeDetails { result in
             DispatchQueue.main.async {
                 isLoading = false
-                
                 switch result {
                 case .success(let enrollments):
-                    // Filter only completed challenges
                     self.completedBadges = enrollments
                         .filter { $0.completedAt != nil }
-                        .sorted { $0.completedAt! > $1.completedAt! } // Newest first
-                    
+                        .sorted { $0.completedAt! > $1.completedAt! }
                     print("✅ Loaded \(self.completedBadges.count) badges")
-                    
                 case .failure(let error):
                     print("❌ Error loading badges: \(error.localizedDescription)")
                 }

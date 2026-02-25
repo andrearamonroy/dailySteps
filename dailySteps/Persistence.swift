@@ -52,22 +52,21 @@ struct PersistenceController {
 
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "dailySteps")
+        
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
-            //if nothing exists at the oldStoreURL then point it at the shareStoredURL
-        }else if !FileManager.default.fileExists(atPath: oldStoreURL.path) {
-            print("no oldStoreURL found --> point to sharedStoredURL")
+        } else {
+            // Always use shared store — works for both app and widget
             container.persistentStoreDescriptions.first!.url = sharedStoredURL
         }
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+        
+        container.loadPersistentStores { _, error in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
-        })
+        }
         
-        
-        migrateStore(for: container)
-        // Enforce unique constraint behavior globally
+        migrateStore(for: container) // safe — exits immediately if old store doesn't exist
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         container.viewContext.automaticallyMergesChangesFromParent = true
     }

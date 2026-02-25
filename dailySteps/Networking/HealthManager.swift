@@ -115,6 +115,14 @@ class HealthManager: ObservableObject {
             
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
+                
+                // Always write to UserDefaults for widget, even if UI value hasn't changed
+                if let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") {
+                    defaults.set(stepInt, forKey: "currentStepCount")
+                    defaults.set(Date(), forKey: "stepCountDate")
+                }
+                
+                
                 guard stepInt != self.stepCount else { return }
                 
                 print("🔄 Updating steps: old=\(self.stepCount), new=\(stepInt)")
@@ -129,9 +137,10 @@ class HealthManager: ObservableObject {
                 self.stepCount = stepInt
                 
                 let goal = self.currentGoal
-              
+                if goal > 0 && stepInt >= goal {
                     self.saveGoalReached()
                     print("✅ Goal reached! Saving to Core Data")
+                }
             
                 
                 print("📊 Steps updated to: \(stepInt)")

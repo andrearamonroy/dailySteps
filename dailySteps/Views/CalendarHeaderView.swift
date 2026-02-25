@@ -13,13 +13,19 @@ struct CalendarHeaderView: View {
     //adding font to be able to pass it in when we call the view, so that the calendar view and the widget have different fonts
     var font: Font = .body
     
+    private var currentBackground: BackgroundColor {
+         let colorString = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?
+             .string(forKey: "backgroundColor") ?? BackgroundColor.aurora.rawValue
+         return BackgroundColor(rawValue: colorString) ?? .aurora
+     }
+    
     var body: some View {
         HStack {
             ForEach(daysOfWeek, id: \.self) { dayOfWeek in
                 Text(dayOfWeek)
                     .font(font)
                     .fontWeight(.black)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(currentBackground.color)
                     .frame(maxWidth: .infinity)
             }
             

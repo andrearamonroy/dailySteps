@@ -765,7 +765,7 @@ extension CloudKitManager {
             }
 
             // Pull duration here so we have it for completion check
-            let durationDays = (challenge["durationDays"] as? Int) ?? 0
+            let durationDays = (challenge["duration"] as? Int) ?? 0
 
             let yesterdayStart = calendar.startOfDay(for: yesterday)
             let yesterdayEnd = calendar.date(byAdding: .day, value: 1, to: yesterdayStart)!
