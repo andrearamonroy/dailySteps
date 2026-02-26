@@ -46,7 +46,7 @@ class MainViewModel : ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     
     //Today's date to be displayed in the main view
-    @Published var todayDate = Date()
+    var todayDate: Date { Date() }
     //cancellable for the todayDate timer
     private var todayTimer: AnyCancellable?
     
@@ -69,6 +69,10 @@ class MainViewModel : ObservableObject {
     
     init(){
 
+        
+#if DEBUG
+CloudKitManager.shared.uploadAllIcons()
+#endif
         
         self.healthManager = HealthManager(goalProvider: { [weak self] in
                    self?.stepGoal ?? 0
@@ -135,6 +139,9 @@ class MainViewModel : ObservableObject {
     }
     
   */
+    
+    
+    
     
     func checkAndUpdateProgress(currentSteps: Int) {
         cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in

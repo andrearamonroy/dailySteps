@@ -9,7 +9,26 @@ import SwiftUI
 import CloudKit
 
 // MARK: - CloudKit Manager Extension for Account Status
-
+extension CKRecord {
+    var challengeCardGradient: LinearGradient {
+        let gradientID = (self["cardGradient"] as? String ?? "").lowercased()
+        
+        switch gradientID {
+        case "redorange":
+            return LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "yelloworange":
+            return LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "greenteal":
+            return LinearGradient(colors: [.green, .teal], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "purplepink":
+            return LinearGradient(colors: [.purple, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "pinkred":
+            return LinearGradient(colors: [.pink, .red], startPoint: .topLeading, endPoint: .bottomTrailing)
+        default:
+            return LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+}
 extension CloudKitManager {
     
     /// Checks if the user is logged into their iCloud account
@@ -50,6 +69,7 @@ extension CloudKitManager {
 import SwiftUI
 
 struct ChallengesListView: View {
+    @State private var sortNewestFirst = true
     @StateObject private var cloudKitManager = CloudKitManager.shared
     @State private var challenges: [CKRecord] = []
     @State private var isLoading = false
@@ -59,6 +79,14 @@ struct ChallengesListView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var themeManager = ThemeManager.shared
 
+    
+    var sortedChallenges: [CKRecord] {
+        challenges.sorted {
+            let date0 = $0.creationDate ?? Date.distantPast
+            let date1 = $1.creationDate ?? Date.distantPast
+            return sortNewestFirst ? date0 > date1 : date0 < date1
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -92,6 +120,7 @@ struct ChallengesListView: View {
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
+                            
                             // Header
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack {
@@ -100,6 +129,28 @@ struct ChallengesListView: View {
                                     Text("Challenges")
                                         .font(.largeTitle)
                                         .fontWeight(.bold)
+                                    
+                                    Spacer()
+                                    
+                                    // Sort toggle button
+                                    Button {
+                                        withAnimation {
+                                            sortNewestFirst.toggle()
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
+                                                .font(.caption)
+                                            Text(sortNewestFirst ? "Newest" : "Oldest")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(8)
+                                    }
                                 }
                                 Text("Choose a challenge and start your journey")
                                     .font(.subheadline)
@@ -108,10 +159,10 @@ struct ChallengesListView: View {
                             .padding(.horizontal)
                             .padding(.top, 8)
                             .padding(.bottom, 16)
-                            
+
                             // Challenge cards
                             VStack(spacing: 12) {
-                                ForEach(challenges, id: \.recordID) { challenge in
+                                ForEach(sortedChallenges, id: \.recordID) { challenge in
                                     NavigationLink(destination: ChallengeDetailView(challenge: challenge)) {
                                         ChallengeCardView(challenge: challenge)
                                     }
@@ -188,11 +239,9 @@ struct ChallengeCardView: View {
     var body: some View {
         HStack(spacing: 16) {
             // Custom Icon
-            Image(challenge.challengeIconName)
-                .resizable()
-                .scaledToFit()
+            ChallengeIconView(challenge: challenge)
                 .frame(width: 80, height: 80)
-                .foregroundColor(.blue) // Only works if "Template Image"
+               // Only works if "Template Image"
             
             // Content
             VStack(alignment: .leading, spacing: 6) {
@@ -661,11 +710,11 @@ struct CardFrontView: View {
             // Top colored section
             VStack(spacing: 16) {
                 // Custom Icon
-                Image(challenge.challengeIconName)
-                    .resizable()
+                ChallengeIconView(challenge: challenge)
+                  
                     .scaledToFit()
                     .frame(width: 150, height: 150)
-                    .foregroundColor(.white) // Tint color
+                
                 
                 Text(challenge["name"] as? String ?? "Challenge")
                     .font(.title)
@@ -727,37 +776,7 @@ struct CardFrontView: View {
     }
     
     private var cardGradient: LinearGradient {
-        let id = (challenge["challengeID"] as? String ?? "").lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        } else if id.contains("weekend") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
-        else if id.contains("freedom") {
-           return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("sunday") {
-            return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("saturday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("thrusday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        
-        else if id.contains("wednesday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("10k-everyday") {
-            return LinearGradient(colors: [Color.pink, Color.red], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("7k-everyday") {
-            return LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else {
-            return LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
+        challenge.challengeCardGradient
     }
     
     private func formatSteps(_ steps: Int) -> String {
@@ -810,37 +829,7 @@ struct CardBackView: View {
     }
     
     private var cardGradient: LinearGradient {
-        let id = (challenge["challengeID"] as? String ?? "").lowercased()
-        if id.contains("10k") || id.contains("daily") {
-            return LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        } else if id.contains("weekend") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
-        else if id.contains("freedom") {
-           return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("sunday") {
-            return LinearGradient(colors: [Color.green, Color.teal], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("saturday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("thrusday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        
-        else if id.contains("wednesday") {
-            return LinearGradient(colors: [Color.yellow, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("10k-everyday") {
-            return LinearGradient(colors: [Color.pink, Color.red], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else if id.contains("7k-everyday") {
-            return LinearGradient(colors: [Color.purple, Color.pink], startPoint: .topLeading, endPoint: .bottomTrailing)
-       }
-        else {
-            return LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-        }
+        challenge.challengeCardGradient
     }
     
     private func formatSteps(_ steps: Int) -> String {

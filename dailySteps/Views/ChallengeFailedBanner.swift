@@ -18,7 +18,7 @@ private let encouragingMessages: [String] = [
 
 struct ChallengeFailedBanner: View {
     let challengeName: String
-    let challengeIconName: String
+    let challenge: CKRecord
     let failureReason: ChallengeFailureReason
     var onTryAgain: () -> Void
     var onDismiss: () -> Void
@@ -52,10 +52,9 @@ struct ChallengeFailedBanner: View {
                             )
                         )
                         .frame(width: 44, height: 44)
-                    Image(challengeIconName)
-                        .resizable()
-                        .scaledToFit()
+                    ChallengeIconView(challenge: challenge)
                         .frame(width: 26, height: 26)
+                     
                 }
 
                 // Text
@@ -264,18 +263,18 @@ extension CloudKitManager {
     }
 */
 
-// MARK: - Preview
-
-#Preview {
-    ZStack(alignment: .top) {
-        Color(.systemGroupedBackground).ignoresSafeArea()
-        ChallengeFailedBanner(
-            challengeName: "Turbo Tuesday",
-            challengeIconName: "turboTuesday",
-            failureReason: .missedDay,
-            onTryAgain: { print("try again") },
-            onDismiss: { print("dismissed") }
-        )
-        .padding(.top, 20)
-    }
-}
+//// MARK: - Preview
+//
+//#Preview {
+//    ZStack(alignment: .top) {
+//        Color(.systemGroupedBackground).ignoresSafeArea()
+//        ChallengeFailedBanner(
+//            challengeName: "Turbo Tuesday",
+//            challenge: "turboTuesday",
+//            failureReason: .missedDay,
+//            onTryAgain: { print("try again") },
+//            onDismiss: { print("dismissed") }
+//        )
+//        .padding(.top, 20)
+//    }
+//}

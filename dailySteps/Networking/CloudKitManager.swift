@@ -425,10 +425,51 @@ enum DatabaseType {
     case `public`
 }
 
+
+
 // MARK: - Example Usage and Testing
 
 #if DEBUG
 extension CloudKitManager {
+    func uploadIconImage(challengeID: String, imageName: String) {
+        guard let image = UIImage(named: imageName),
+              let data = image.pngData() else { return }
+        
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(challengeID).png")
+        try? data.write(to: tempURL)
+        
+        let predicate = NSPredicate(format: "challengeID == %@", challengeID)
+        let query = CKQuery(recordType: "Challenge", predicate: predicate)
+        
+        publicDatabase.fetch(withQuery: query, inZoneWith: nil, desiredKeys: nil, resultsLimit: 1) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let (matchResults, _)):
+                for (_, recordResult) in matchResults {
+                    switch recordResult {
+                    case .success(let record):
+                        record["iconImage"] = CKAsset(fileURL: tempURL)
+                        self.publicDatabase.save(record) { _, error in
+                            if let error = error {
+                                print("❌ Failed to upload icon for \(challengeID): \(error.localizedDescription)")
+                            } else {
+                                print("✅ Uploaded icon for \(challengeID)")
+                            }
+                        }
+                    case .failure(let error):
+                        print("❌ Record fetch failed for \(challengeID): \(error.localizedDescription)")
+                    }
+                }
+                
+            case .failure(let error):
+                print("❌ Query failed for \(challengeID): \(error.localizedDescription)")
+            }
+        }
+    }
+
+
     
     /// Example: Create and save a challenge (run this once to populate public database)
     func createSampleChallenges() {
@@ -1128,3 +1169,20 @@ extension CloudKitManager {
         }
     }
 }
+
+#if DEBUG
+extension CloudKitManager {
+    func uploadAllIcons() {
+        uploadIconImage(challengeID: "10k-monday", imageName: "10kMonday")
+        uploadIconImage(challengeID: "weekend-warrior", imageName: "weekendWarrior")
+        uploadIconImage(challengeID: "freedom-friday", imageName: "freedomFriday")
+        uploadIconImage(challengeID: "steady-sunday", imageName: "steadySunday")
+        uploadIconImage(challengeID: "super-saturday", imageName: "superSaturday")
+        uploadIconImage(challengeID: "thirsty-thursday", imageName: "thursday")
+        uploadIconImage(challengeID: "turbo-tuesday", imageName: "turboTuesday")
+        uploadIconImage(challengeID: "10k-everyday", imageName: "10kEveryday")
+        uploadIconImage(challengeID: "7k-everyday", imageName: "7kEveryday")
+        uploadIconImage(challengeID: "wellness-wednesday", imageName: "wellnesWed")
+    }
+}
+#endif

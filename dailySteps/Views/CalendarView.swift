@@ -75,6 +75,7 @@ struct CalendarView: View {
 struct ColorCodedCalendarGrid: View {
     let days: [Day]
     let today: Date
+    var compact: Bool = false
 
     var body: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 8) {
@@ -86,7 +87,8 @@ struct ColorCodedCalendarGrid: View {
                     } else {
                         DayCell(
                             day: day,
-                            isToday: Calendar.current.isDate(date, inSameDayAs: today)
+                            isToday: Calendar.current.isDate(date, inSameDayAs: today),
+                            compact: compact
                         )
                     }
                 }
@@ -99,6 +101,7 @@ struct ColorCodedCalendarGrid: View {
 struct DayCell: View {
     let day: Day
     let isToday: Bool
+    var compact: Bool = false
 
     var body: some View {
         VStack(spacing: 2) {
@@ -118,11 +121,13 @@ struct DayCell: View {
                 RoundedRectangle(cornerRadius: 8)
                     .stroke(isToday ? Color.blue : Color.clear, lineWidth: 2)
             )
-
-            Text(formatSteps(Int(day.stepCount)))
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(day.didSteps ? .green : .secondary)
-                .lineLimit(1)
+            // Only show step count in non-compact mode
+                  if !compact {
+                      Text(formatSteps(Int(day.stepCount)))
+                          .font(.system(size: 11, weight: .medium))
+                          .foregroundColor(day.didSteps ? .green : .secondary)
+                          .lineLimit(1)
+                  }
         }
         .frame(maxWidth: .infinity, minHeight: 54)
     }

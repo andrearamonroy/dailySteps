@@ -56,6 +56,8 @@ struct StepView: View {
     @AppStorage("lastFeedbackPromptDate") private var lastFeedbackPromptDate: String = ""
     @State private var showFeedbackPrompt = false
     
+    @State private var currentDate = Date()
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -66,7 +68,7 @@ struct StepView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         // Date Header
-                        Text(mainViewModel.todayDate, format: .dateTime.weekday().day().month().year())
+                        Text(currentDate, format: .dateTime.weekday().day().month().year())
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .padding(.top)
@@ -244,7 +246,7 @@ struct StepView: View {
             if showFailureBanner, let challenge = activeChallenge {
                 ChallengeFailedBanner(
                     challengeName: challenge["name"] as? String ?? "Challenge",
-                    challengeIconName: challenge.challengeIconName,
+                    challenge: challenge,
                     failureReason: failureReason,
                     onTryAgain: {
                         showFailureBanner = false
@@ -336,11 +338,7 @@ struct StepView: View {
             //update progress with current steps
             mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             
-            // Schedule evening reminder if goal not met yet
-              NotificationManager.shared.scheduleEveningReminderIfNeeded(
-                  currentSteps: mainViewModel.healthManager.stepCount,
-                  goalSteps: Int(mainViewModel.stepGoal)
-              )
+           
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             
             // Only load challenge if cache expired or no data
@@ -354,6 +352,23 @@ struct StepView: View {
                 //reset
                 //appState.dismissChallengeListView = false
             }
+        }
+        
+        // Fires automatically at midnight
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            currentDate = Date()
+            hasShownGoalCelebrationToday = false  // reset so celebration can fire again new day
+            mainViewModel.healthManager.refreshTodaySteps()
+            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+            loadActiveChallenge(forceRefresh: true)
+        }
+
+        // Fires when app comes back from background
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            currentDate = Date()
+            mainViewModel.healthManager.refreshTodaySteps()
+            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+            loadActiveChallenge(forceRefresh: false)
         }
         
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnded"))) { _ in
@@ -390,6 +405,12 @@ struct StepView: View {
                     currentSteps: newValue,
                     goalSteps: Int(mainViewModel.stepGoal)
                 )
+                
+                //evening reminder
+                NotificationManager.shared.scheduleEveningReminderIfNeeded(
+                       currentSteps: newValue,
+                       goalSteps: Int(mainViewModel.stepGoal)
+                   )
                 
                 // Check personal goal
                 if oldValue < mainViewModel.stepGoal && newValue >= mainViewModel.stepGoal {

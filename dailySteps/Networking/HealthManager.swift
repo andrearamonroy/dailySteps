@@ -127,10 +127,16 @@ class HealthManager: ObservableObject {
                 
                 print("🔄 Updating steps: old=\(self.stepCount), new=\(stepInt)")
                 
-                // Never overwrite a real step count with zero
-                guard stepInt > 0 || self.stepCount == 0 else {
-                    print("⚠️ Ignoring zero step update — keeping current count: \(self.stepCount)")
-                    return
+                // Never overwrite a real step count with zero UNLESS it's a new day
+                if stepInt == 0 && self.stepCount > 0 {
+                    let lastUpdateDate = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?.object(forKey: "stepCountDate") as? Date ?? Date()
+                    let isNewDay = !Calendar.current.isDateInToday(lastUpdateDate)
+                    
+                    if !isNewDay {
+                        print("⚠️ Ignoring zero step update — same day, keeping: \(self.stepCount)")
+                        return
+                    }
+                    print("🌅 New day detected — resetting step count to 0")
                 }
                 
                 // Always update to trigger UI refresh

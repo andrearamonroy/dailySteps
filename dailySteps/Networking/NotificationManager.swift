@@ -178,9 +178,12 @@ class NotificationManager: ObservableObject {
     }
     
     // MARK: - Evening Reminder (if goal not met)
-    // MARK: - Evening Reminder (if goal not met)
     func scheduleEveningReminderIfNeeded(currentSteps: Int, goalSteps: Int, challengeSteps: Int? = nil) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["eveningReminder"])
+        
+        // Only schedule if it's between 7:00 PM and 9:00 PM
+        let hour = Calendar.current.component(.hour, from: Date())
+        guard hour >= 19 && hour < 21 else { return }
         
         let personalGoalMet = currentSteps >= goalSteps
         let challengeGoalMet = challengeSteps.map { currentSteps >= $0 } ?? false
@@ -218,18 +221,15 @@ class NotificationManager: ObservableObject {
             content.body = "You're \(stepsLeft) steps away from your goal. One last push — you've got this!"
         }
 
-        var dateComponents = DateComponents()
-        dateComponents.hour = 20
-        dateComponents.minute = 0
-
-        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: false)
+        // Deliver in 5 minutes with fresh step data
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5 * 60, repeats: false)
         let request = UNNotificationRequest(identifier: "eveningReminder", content: content, trigger: trigger)
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
                 print("❌ Error scheduling evening reminder: \(error.localizedDescription)")
             } else {
-                print("✅ Evening reminder scheduled (goal met: \(eitherGoalMet))")
+                print("✅ Evening reminder scheduled for ~5 min from now with \(currentSteps) steps")
             }
         }
     }

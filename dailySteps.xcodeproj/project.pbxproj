@@ -633,6 +633,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = TheDailySteps;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your step count to help you track your activity";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The Daily Steps, uses HeathKit Data to track your steps and help you achieve your daily step goals! And enroll in step challenges!";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -672,6 +673,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = TheDailySteps;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads your step count to help you track your activity";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "The Daily Steps, uses HeathKit Data to track your steps and help you achieve your daily step goals! And enroll in step challenges!";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

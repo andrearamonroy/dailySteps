@@ -21,7 +21,10 @@ func loadWidgetTheme() -> WidgetTheme {
     return WidgetTheme(primary: gradient)
 }
 
-struct Provider: AppIntentTimelineProvider {
+struct Provider: TimelineProvider {
+
+    
+    
     //using core data persistence container view context in the widget to display data
     private var viewContext: NSManagedObjectContext {
         PersistenceController.shared.container.viewContext
@@ -37,14 +40,13 @@ struct Provider: AppIntentTimelineProvider {
     var graceDays: Int = 0
     
     private func getCurrentStepCount() -> Int {
-        guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return 0 }
-        
-        // Check if the saved step count is from today
-        let savedDate = defaults.object(forKey: "stepCountDate") as? Date
-        let isToday = savedDate.map { Calendar.current.isDateInToday($0) } ?? false
-        
-        guard isToday else { return 0 } // new day → show 0 until first fetch
-        return defaults.integer(forKey: "currentStepCount")
+        guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
+            print("❌ UserDefaults suite is NIL")
+            return 0
+        }
+        let count = defaults.integer(forKey: "currentStepCount")
+        print("✅ UserDefaults suite OK, stepCount = \(count)")
+        return count
     }
     
     private func getCurrentGoal() -> Int {
@@ -65,60 +67,51 @@ struct Provider: AppIntentTimelineProvider {
         return request
     }
     
-    func placeholder(in context: Context) -> CalendarEntry {
-        CalendarEntry(date: Date(), configuration: ConfigurationAppIntent(), days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color),                 stepCount: 0,
+    func placeholder(in context: Context) -> CalendarEntry  {
+        CalendarEntry(date: Date(),  days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color),                 stepCount: 0,
                       stepGoal: 100
         )
     }
 
-    func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> CalendarEntry {
+    func getSnapshot(in context: Context, completion: @escaping (CalendarEntry) -> Void) {
         
         //fetching from core data the old way
 
-        do {
-            let theme = loadWidgetTheme()
-            let days = try viewContext.fetch(dayFetchRequest)
-            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
-            let stepCount = getCurrentStepCount()
-            let stepGoal = getCurrentGoal()
-            return  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,  stepCount : stepCount, stepGoal: stepGoal )
-        } catch {
-            print("Widget failed to fetch days in the snapshot")
-            return  CalendarEntry(date: Date(), configuration: configuration, days: [], streak: 0, theme:  WidgetTheme(primary: BackgroundColor.aurora.color) ,                 stepCount: 0, stepGoal: 0
-            )
-        }
+       
+            do {
+                let theme = loadWidgetTheme()
+                let days = try viewContext.fetch(dayFetchRequest)
+                let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+                let stepCount = getCurrentStepCount()
+                let stepGoal = getCurrentGoal()
+                completion(CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal))
+            } catch {
+                completion(CalendarEntry(date: Date(), days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color), stepCount: 0, stepGoal: 0))
+            }
         
         
       
         
     }
-    
-    func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<CalendarEntry> {
-       
-        
+    func getTimeline(in context: Context, completion: @escaping (Timeline<CalendarEntry>) -> Void) {
+            do {
+                let theme = loadWidgetTheme()
+                let days = try viewContext.fetch(dayFetchRequest)
+                let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+                let stepCount = getCurrentStepCount()
+                let stepGoal = getCurrentGoal()
 
-        do {
-            let theme = loadWidgetTheme()
-            let days = try viewContext.fetch(dayFetchRequest)
-            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
-            let stepCount = getCurrentStepCount()
-            let stepGoal = getCurrentGoal()
-            
-            
-            let entry =  CalendarEntry(date: Date(), configuration: configuration, days: days, streak: streak, theme: theme,                stepCount: stepCount, stepGoal: stepGoal )
-            
-            
-            let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
-            
-            return Timeline(entries: [entry], policy: .after(midnight))
+                print("🔍 stepCount: \(stepCount)")
+                print("🔍 stepGoal: \(stepGoal)")
 
-        } catch {
-            print("Widget failed to fetch days in the snapshot")
-            return Timeline(entries: [], policy: .after(.now.endOfDay))
+                let entry = CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal)
+                let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+                completion(Timeline(entries: [entry], policy: .after(midnight)))
+            } catch {
+                print("❌ Widget failed to fetch days")
+                completion(Timeline(entries: [], policy: .after(.now.endOfDay)))
+            }
         }
-
-        
-    }
 
 //    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
 //        // Generate a list containing the contexts this widget is relevant in.
@@ -127,7 +120,6 @@ struct Provider: AppIntentTimelineProvider {
 
 struct CalendarEntry: TimelineEntry {
     let date: Date
-    let configuration: ConfigurationAppIntent
     let days : [Day]
     let streak : Int
     let theme: WidgetTheme
@@ -144,19 +136,25 @@ struct dailyStepsWidgetEntryView: View {
         switch family {
         case .systemSmall:
             SmallWidgetView(entry: entry)
-                .containerBackground(entry.theme.primary, for: .widget)
+                .containerBackground(for: .widget) {
+                    entry.theme.primary
+                }
         case .accessoryInline:
             InlineWidgetView(entry: entry)
+        
         default:
             InlineWidgetView(entry: entry)
         }
     }
 }
 
+/*
+ 
+ */
+
 // MARK: - Small Widget
-struct SmallWidgetView: View {
+struct SmallWidgetView1: View {
     let entry: CalendarEntry
-    
     
     private var progress: Double {
         guard entry.stepGoal > 0 else { return 0 }
@@ -172,58 +170,72 @@ struct SmallWidgetView: View {
             entry.theme.primary
                 .ignoresSafeArea()
             
-            VStack(spacing: 10) {
-                
-                // Progress Ring
-                ZStack {
-                    // Track
-                    Circle()
-                        .stroke(Color.black.opacity(0.1), lineWidth: 7)
-                        .frame(width: 80, height: 80)
+            VStack(alignment: .leading, spacing: 8) {
+                // Header row
+                HStack {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                 
                     
-                    // Fill
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            progress >= 1.0 ? Color.green : Color.black.opacity(0.45),
-                            style: StrokeStyle(lineWidth: 7, lineCap: .round)
-                        )
-                        .frame(width: 80, height: 80)
-                        .rotationEffect(.degrees(-90))
+                    Spacer()
                     
-                    // Center text
-                    VStack(spacing: 1) {
-                        Text(formatSteps(entry.stepCount))
-                            .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(.black.opacity(0.8))
-                        Text("\(progressPercent)%")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.black.opacity(0.4))
-                    }
-                }
-                
-                // Streak row — flame + number side by side, "day streak" below
-                VStack(spacing: 2) {
-                    HStack(spacing: 4) {
+                    // Streak pill
+                    HStack(spacing: 3) {
                         Text("🔥")
-                            .font(.system(size: 16))
+                            .font(.system(size: 11))
                         Text("\(entry.streak)")
-                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                            .foregroundColor(.black.opacity(0.75))
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
                     }
-                    Text("DAY STREAK")
-                        .font(.system(size: 8, weight: .semibold))
-                        .tracking(1.2)
-                        .foregroundColor(.black.opacity(0.35))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.15))
+                    .clipShape(Capsule())
+                    .fixedSize()
                 }
+                
+                Spacer()
+                
+                // Big step count
+                Text(formatSteps(entry.stepCount))
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                
+                // Goal subtitle
+                Text("of \(formatSteps(entry.stepGoal))")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
+                
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.25))
+                            .frame(height: 6)
+                        
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white)
+                            .frame(width: geo.size.width * progress, height: 6)
+                    }
+                }
+                .frame(height: 6)
+                
+                // Percentage
+                Text("\(progressPercent)%")
+                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
             }
-            .padding(12)
+            .padding(14)
         }
     }
     
     private func formatSteps(_ steps: Int) -> String {
         if steps >= 1000 {
             let k = Double(steps) / 1000.0
+            if k.truncatingRemainder(dividingBy: 1) == 0 {
+                return "\(Int(k))k"
+            }
             return String(format: "%.1fk", k)
         }
         return "\(steps)"
@@ -231,6 +243,114 @@ struct SmallWidgetView: View {
 }
 
 
+
+struct SmallWidgetView: View {
+    let entry: CalendarEntry
+    
+    private var progress: Double {
+        guard entry.stepGoal > 0 else { return 0 }
+        return min(Double(entry.stepCount) / Double(entry.stepGoal), 1.0)
+    }
+    
+    private var progressPercent: Int {
+        Int(progress * 100)
+    }
+    
+    var body: some View {
+        ZStack {
+            entry.theme.primary
+                .ignoresSafeArea()
+            
+            VStack(alignment: .leading, spacing: 8) {
+                // Header row
+                HStack {
+                    Image(systemName: "figure.walk")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Streak pill
+                    HStack(spacing: 3) {
+                        Text("🔥")
+                            .font(.system(size: 11))
+                        Text("\(entry.streak)")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.25))
+                    .clipShape(Capsule())
+                    .fixedSize()
+                }
+                
+                Spacer()
+                
+                // Big step count
+                Text(formatSteps(entry.stepCount))
+                    .font(.system(size: 36, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
+                
+                // Goal subtitle
+                Text("of \(formatSteps(entry.stepGoal))")
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
+                
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        // Track
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.white.opacity(0.2))
+                            .frame(height: 8)
+                        
+                        // Fill
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                LinearGradient(
+                                    colors: progress >= 1.0
+                                        ? [Color.green.opacity(0.9), Color.mint]
+                                        : [Color.white.opacity(0.9), Color.white.opacity(0.6)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: max(geo.size.width * progress, progress > 0 ? 8 : 0), height: 8)
+                            .shadow(color: .white.opacity(0.4), radius: 3, x: 0, y: 0)
+                    }
+                }
+                .frame(height: 8)
+                
+                // Percentage
+                HStack(spacing: 4) {
+                    Text("\(progressPercent)%")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    if progress >= 1.0 {
+                        Text("✓ Goal reached!")
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+            }
+            .padding(14)
+        }
+    }
+    
+    private func formatSteps(_ steps: Int) -> String {
+        if steps >= 1000 {
+            let k = Double(steps) / 1000.0
+            if k.truncatingRemainder(dividingBy: 1) == 0 {
+                return "\(Int(k))k"
+            }
+            return String(format: "%.1fk", k)
+        }
+        return "\(steps)"
+    }
+}
 
 // MARK: - Inline Widget (Lock Screen)
 struct InlineWidgetView: View {
@@ -259,9 +379,8 @@ struct dailyStepsWidget: Widget {
     let kind: String = "dailyStepsWidget"
 
     var body: some WidgetConfiguration {
-        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
             dailyStepsWidgetEntryView(entry: entry)
-               // .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Daily Steps")
         .description("Your daily step count")
@@ -269,6 +388,11 @@ struct dailyStepsWidget: Widget {
     }
 }
 
+
+
+
+
+/*
 extension ConfigurationAppIntent {
     fileprivate static var smiley: ConfigurationAppIntent {
         let intent = ConfigurationAppIntent()
@@ -282,11 +406,27 @@ extension ConfigurationAppIntent {
         return intent
     }
 }
-
+*/
 #Preview(as: .systemMedium) {
     dailyStepsWidget()
     
 } timeline: {
-    CalendarEntry(date: .now, configuration: .smiley, days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color), stepCount : 0, stepGoal: 0 )
+    CalendarEntry(date: .now, days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color), stepCount : 0, stepGoal: 0 )
     
 }
+
+// MARK: - Medium Widget
+struct MediumWidgetView: View {
+    let entry: CalendarEntry
+
+    private var currentBackground: BackgroundColor {
+        let colorString = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?
+            .string(forKey: "backgroundColor") ?? BackgroundColor.aurora.rawValue
+        return BackgroundColor(rawValue: colorString) ?? .aurora
+    }
+
+    var body : some View {}
+}
+
+
+
