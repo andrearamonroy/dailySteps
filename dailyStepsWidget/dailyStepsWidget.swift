@@ -23,12 +23,6 @@ func loadWidgetTheme() -> WidgetTheme {
 
 struct Provider: TimelineProvider {
 
-    
-    
-    //using core data persistence container view context in the widget to display data
-    private var viewContext: NSManagedObjectContext {
-        PersistenceController.shared.container.viewContext
-    }
 
     
     // Shared AppStorage for graceDays
@@ -56,6 +50,10 @@ struct Provider: TimelineProvider {
     }
     
     
+    private func fetchDays() throws -> [Day] {
+        let context = PersistenceController.shared.container.newBackgroundContext()
+        return try context.fetch(dayFetchRequest)
+    }
     //fetch request to core data extracted as a variable since it is used in multiple places
     var dayFetchRequest: NSFetchRequest<Day> {
         //fetching from core data the old way
@@ -80,7 +78,7 @@ struct Provider: TimelineProvider {
        
             do {
                 let theme = loadWidgetTheme()
-                let days = try viewContext.fetch(dayFetchRequest)
+                let days = try fetchDays()
                 let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
                 let stepCount = getCurrentStepCount()
                 let stepGoal = getCurrentGoal()
@@ -96,7 +94,7 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<CalendarEntry>) -> Void) {
         do {
             let theme = loadWidgetTheme()
-            let days = try viewContext.fetch(dayFetchRequest)
+            let days = try fetchDays()
             let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
             let stepCount = getCurrentStepCount()
             let stepGoal = getCurrentGoal()
