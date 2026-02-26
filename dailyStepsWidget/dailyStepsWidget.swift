@@ -94,24 +94,32 @@ struct Provider: TimelineProvider {
         
     }
     func getTimeline(in context: Context, completion: @escaping (Timeline<CalendarEntry>) -> Void) {
-            do {
-                let theme = loadWidgetTheme()
-                let days = try viewContext.fetch(dayFetchRequest)
-                let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
-                let stepCount = getCurrentStepCount()
-                let stepGoal = getCurrentGoal()
-
-                print("🔍 stepCount: \(stepCount)")
-                print("🔍 stepGoal: \(stepGoal)")
-
-                let entry = CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal)
-                let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
-                completion(Timeline(entries: [entry], policy: .after(midnight)))
-            } catch {
-                print("❌ Widget failed to fetch days")
-                completion(Timeline(entries: [], policy: .after(.now.endOfDay)))
-            }
+        do {
+            let theme = loadWidgetTheme()
+            let days = try viewContext.fetch(dayFetchRequest)
+            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+            let stepCount = getCurrentStepCount()
+            let stepGoal = getCurrentGoal()
+            
+            print("🔍 stepCount: \(stepCount)")
+            print("🔍 stepGoal: \(stepGoal)")
+            
+            let entry = CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal)
+            let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+            completion(Timeline(entries: [entry], policy: .after(midnight)))
+        }catch {
+            print("❌ Widget failed to fetch days")
+            let fallback = CalendarEntry(
+                date: Date(),
+                days: [],
+                streak: 0,
+                theme: WidgetTheme(primary: BackgroundColor.aurora.color),
+                stepCount: getCurrentStepCount(),
+                stepGoal: getCurrentGoal()
+            )
+            completion(Timeline(entries: [fallback], policy: .atEnd))
         }
+    }
 
 //    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
 //        // Generate a list containing the contexts this widget is relevant in.
@@ -152,95 +160,6 @@ struct dailyStepsWidgetEntryView: View {
  
  */
 
-// MARK: - Small Widget
-struct SmallWidgetView1: View {
-    let entry: CalendarEntry
-    
-    private var progress: Double {
-        guard entry.stepGoal > 0 else { return 0 }
-        return min(Double(entry.stepCount) / Double(entry.stepGoal), 1.0)
-    }
-    
-    private var progressPercent: Int {
-        Int(progress * 100)
-    }
-    
-    var body: some View {
-        ZStack {
-            entry.theme.primary
-                .ignoresSafeArea()
-            
-            VStack(alignment: .leading, spacing: 8) {
-                // Header row
-                HStack {
-                    Image(systemName: "figure.walk")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
-                 
-                    
-                    Spacer()
-                    
-                    // Streak pill
-                    HStack(spacing: 3) {
-                        Text("🔥")
-                            .font(.system(size: 11))
-                        Text("\(entry.streak)")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.15))
-                    .clipShape(Capsule())
-                    .fixedSize()
-                }
-                
-                Spacer()
-                
-                // Big step count
-                Text(formatSteps(entry.stepCount))
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
-                
-                // Goal subtitle
-                Text("of \(formatSteps(entry.stepGoal))")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
-                
-                // Progress bar
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white.opacity(0.25))
-                            .frame(height: 6)
-                        
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.white)
-                            .frame(width: geo.size.width * progress, height: 6)
-                    }
-                }
-                .frame(height: 6)
-                
-                // Percentage
-                Text("\(progressPercent)%")
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
-            }
-            .padding(14)
-        }
-    }
-    
-    private func formatSteps(_ steps: Int) -> String {
-        if steps >= 1000 {
-            let k = Double(steps) / 1000.0
-            if k.truncatingRemainder(dividingBy: 1) == 0 {
-                return "\(Int(k))k"
-            }
-            return String(format: "%.1fk", k)
-        }
-        return "\(steps)"
-    }
-}
 
 
 
@@ -257,9 +176,7 @@ struct SmallWidgetView: View {
     }
     
     var body: some View {
-        ZStack {
-            entry.theme.primary
-                .ignoresSafeArea()
+      
             
             VStack(alignment: .leading, spacing: 8) {
                 // Header row
@@ -337,7 +254,7 @@ struct SmallWidgetView: View {
                 }
             }
             .padding(14)
-        }
+        
     }
     
     private func formatSteps(_ steps: Int) -> String {
