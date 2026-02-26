@@ -109,7 +109,7 @@ struct StepGoalSettingsView: View {
     
     private func sendFeedbackEmail() {
         let email = "thedailystepsapp@gmail.com"
-        let subject = "Daily Steps Feedback"
+        let subject = "The Daily Steps Feedback"
         let body = "Hi there,\n\nI'd like to share some feedback:\n\n"
         
         if let url = URL(string: "mailto:\(email)?subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")&body=\(body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {

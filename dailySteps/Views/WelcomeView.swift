@@ -49,7 +49,7 @@ struct WelcomeView: View {
                         .shadow(color: Color(red: 0.3, green: 0.5, blue: 0.9).opacity(0.25),
                                 radius: 18, x: 0, y: 8)
 
-                    Text("Daily Steps")
+                    Text("The Daily Steps")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(

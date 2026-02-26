@@ -252,6 +252,22 @@ struct SmallWidgetView: View {
                             .foregroundColor(.white.opacity(0.9))
                     }
                 }
+                
+                // DEBUG - remove before shipping
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("steps: \(entry.stepCount)")
+                        .font(.system(size: 8))
+                        .foregroundColor(.yellow)
+                    Text("goal: \(entry.stepGoal)")
+                        .font(.system(size: 8))
+                        .foregroundColor(.yellow)
+                    Text("days: \(entry.days.count)")
+                        .font(.system(size: 8))
+                        .foregroundColor(.yellow)
+                    Text(UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?.integer(forKey: "currentStepCount").description ?? "UD nil")
+                        .font(.system(size: 8))
+                        .foregroundColor(.orange)
+                }
             }
             .padding(14)
         
@@ -299,7 +315,7 @@ struct dailyStepsWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             dailyStepsWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("Daily Steps")
+        .configurationDisplayName("The Daily Steps")
         .description("Your daily step count")
         .supportedFamilies([.accessoryInline, .systemSmall])
     }
