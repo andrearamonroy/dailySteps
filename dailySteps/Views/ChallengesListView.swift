@@ -147,7 +147,7 @@ struct ChallengesListView: View {
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(Color.white.opacity(0.1))
                                         .foregroundColor(.blue)
                                         .cornerRadius(8)
                                     }
