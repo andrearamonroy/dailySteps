@@ -6,6 +6,7 @@ import SwiftUI
 import Foundation
 
 
+//MARK: BADGES VIEW ORIGINAL -- AND WORKING VIEW
 
 struct BadgesView: View {
     @EnvironmentObject var appState: AppState
@@ -14,6 +15,14 @@ struct BadgesView: View {
     @ObservedObject var themeManager = ThemeManager.shared
     @State private var hasLoadedOnce = false
     @State private var selectedTab: Int = 0  // 0 = Badges, 1 = Calendar
+    @State private var sortNewestFirst = true
+    
+    private var sortedBadges: [EnrollmentWithChallenge] {
+        completedBadges.sorted {
+            guard let a = $0.completedAt, let b = $1.completedAt else { return false }
+            return sortNewestFirst ? a > b : a < b
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -189,6 +198,7 @@ struct BadgesView: View {
                     hasLoadedOnce = true
                 }
             }
+          
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeCompleted"))) { _ in
                 hasLoadedOnce = false
                 loadBadges()
@@ -256,7 +266,8 @@ struct StatBadge: View {
     }
 }
 
-struct BadgeCard: View {
+//MARK: WORKING BADGE CARD
+struct BadgeCard1: View {
     let badge: EnrollmentWithChallenge
     
     var body: some View {
@@ -356,4 +367,205 @@ struct BadgeCard: View {
         return formatter.string(from: NSNumber(value: steps)) ?? "\(steps)"
     }
 }
+
+struct BadgeCard: View {
+    let badge: EnrollmentWithChallenge
+    @State private var isFlipped = false
+
+    var body: some View {
+        ZStack {
+            cardFront
+                .opacity(isFlipped ? 0 : 1)
+                .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
+
+            cardBack
+                .opacity(isFlipped ? 1 : 0)
+                .rotation3DEffect(.degrees(isFlipped ? 0 : -180), axis: (x: 0, y: 1, z: 0))
+        }
+        .frame(height: 220)
+        .onTapGesture {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                isFlipped.toggle()
+            }
+        }
+    }
+
+    // MARK: - Front
+
+    private var cardFront: some View {
+        VStack(spacing: 0) {
+            // Gradient header with icon
+            ZStack {
+                badge.challengeCardGradient
+                Image(badge.challengeIconName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 54, height: 54)
+            }
+            .frame(height: 110)
+
+            // White body
+            VStack(alignment: .leading, spacing: 4) {
+                Text("COMPLETED")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1.2)
+                    .foregroundColor(accentColor)
+
+                Text(badge.challengeName)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+
+                HStack {
+                    Text("\(badge.duration) day\(badge.duration == 1 ? "" : "s")")
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(accentColor.opacity(0.1))
+                        .foregroundColor(accentColor)
+                        .clipShape(Capsule())
+
+                    Spacer()
+
+                    if let completed = badge.completedAt {
+                        Text(shortDate(completed))
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(minHeight: 115) 
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(.systemBackground))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray5), lineWidth: 1))
+    }
+
+    // MARK: - Back
+
+    private var cardBack: some View {
+        VStack(spacing: 0) {
+            // Thin color strip
+            badge.challengeCardGradient
+                .frame(height: 5)
+
+            VStack(spacing: 0) {
+                // Title row
+                HStack(spacing: 8) {
+                    Image(badge.challengeIconName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                    Text(badge.challengeName)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 14)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
+
+                Divider().padding(.horizontal, 12)
+
+                // Stats
+                VStack(spacing: 7) {
+                    statRow(label: "Days Completed", value: "\(badge.duration) / \(badge.duration)")
+                    statRow(label: "Steps Per Day",  value: formatSteps(badge.targetSteps))
+                    statRow(label: "Total Steps",    value: formatSteps(badge.targetSteps * badge.duration))
+                    statRow(label: "Started", value: mediumDate(badge.startDate))
+                    statRow(label: "Ended",   value: badge.completedAt.map { mediumDate($0) } ?? "—")
+                }
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+
+                Spacer()
+
+                // Progress bar
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Completion")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text("100%")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(accentColor)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(Color(.systemGray5))
+                                .frame(height: 5)
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(badge.challengeCardGradient)
+                                .frame(width: geo.size.width, height: 5)
+                        }
+                    }
+                    .frame(height: 5)
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+            }
+            .frame(maxHeight: .infinity)
+            .background(Color(.systemBackground))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray5), lineWidth: 1))
+    }
+
+    // MARK: - Helpers
+
+    @ViewBuilder
+    private func statRow(label: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(value)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(accentColor)
+                .multilineTextAlignment(.trailing)
+        }
+    }
+
+    private var accentColor: Color {
+        switch badge.cardGradient.lowercased() {
+        case "redorange":    return .red
+        case "yelloworange": return .orange
+        case "greenteal":    return .green
+        case "purplepink":   return .purple
+        case "pinkred":      return .pink
+        default:             return .blue
+        }
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: date)
+    }
+
+    private func mediumDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d, yyyy"
+        return f.string(from: date)
+    }
+
+    private func formatSteps(_ steps: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f.string(from: NSNumber(value: steps)) ?? "\(steps)"
+    }
+}
+
+
 

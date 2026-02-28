@@ -41,7 +41,8 @@ struct BadgesViewPreviewContent: View {
             startDate: Date,
             streak: Int,
             daysCompleted: Int,
-            completedAt: Date?
+            completedAt: Date?,
+            cardGradient: String
         ) -> CKRecord {
             let record = CKRecord(recordType: "Enrollment")
             record.setValue(startDate, forKey: "startDate")
@@ -49,6 +50,7 @@ struct BadgesViewPreviewContent: View {
             record.setValue(streak, forKey: "currentStreak")
             record.setValue(daysCompleted, forKey: "totalDaysCompleted")
             record.setValue(false, forKey: "isActive")
+            record.setValue(cardGradient, forKey: "cardGradient")
             return record
         }
         
@@ -58,6 +60,7 @@ struct BadgesViewPreviewContent: View {
             icon: String,
             duration: Int,
             steps: Int
+         
         ) -> CKRecord {
             let record = CKRecord(recordType: "Challenge")
             record.setValue(id, forKey: "challengeID")
@@ -65,6 +68,7 @@ struct BadgesViewPreviewContent: View {
             record.setValue(icon, forKey: "iconName")
             record.setValue(duration, forKey: "duration")
             record.setValue(steps, forKey: "targetSteps")
+          
             return record
         }
         
@@ -78,7 +82,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: now,
                     streak: 1,
                     daysCompleted: 1,
-                    completedAt: now
+                    completedAt: now,
+                    cardGradient: "redorange"
                 ),
                 challenge: createMockChallenge(
                     id: "10k-monday",
@@ -94,7 +99,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: cal.date(byAdding: .day, value: -12, to: now)!,
                     streak: 7,
                     daysCompleted: 7,
-                    completedAt: cal.date(byAdding: .day, value: -5, to: now)!
+                    completedAt: cal.date(byAdding: .day, value: -5, to: now)!,
+                    cardGradient: "yelloworange"
                 ),
                 challenge: createMockChallenge(
                     id: "weekend-warrior",
@@ -110,7 +116,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: cal.date(byAdding: .day, value: -45, to: now)!,
                     streak: 30,
                     daysCompleted: 30,
-                    completedAt: cal.date(byAdding: .day, value: -15, to: now)!
+                    completedAt: cal.date(byAdding: .day, value: -15, to: now)!,
+                    cardGradient: "greenteal"
                 ),
                 challenge: createMockChallenge(
                     id: "10k-everyday",
@@ -126,7 +133,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: cal.date(byAdding: .day, value: -2, to: now)!,
                     streak: 1,
                     daysCompleted: 1,
-                    completedAt: cal.date(byAdding: .day, value: -2, to: now)!
+                    completedAt: cal.date(byAdding: .day, value: -2, to: now)!,
+                    cardGradient: "purplepink"
                 ),
                 challenge: createMockChallenge(
                     id: "turbo-tuesday",
@@ -142,7 +150,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: cal.date(byAdding: .day, value: -44, to: now)!,
                     streak: 14,
                     daysCompleted: 14,
-                    completedAt: cal.date(byAdding: .day, value: -30, to: now)!
+                    completedAt: cal.date(byAdding: .day, value: -30, to: now)!,
+                    cardGradient: "pinkred"
                 ),
                 challenge: createMockChallenge(
                     id: "7k-everyday",
@@ -158,7 +167,8 @@ struct BadgesViewPreviewContent: View {
                     startDate: cal.date(byAdding: .day, value: -7, to: now)!,
                     streak: 1,
                     daysCompleted: 1,
-                    completedAt: cal.date(byAdding: .day, value: -7, to: now)!
+                    completedAt: cal.date(byAdding: .day, value: -7, to: now)!,
+                    cardGradient: "redorange"
                 ),
                 challenge: createMockChallenge(
                     id: "super-saturday",
@@ -209,7 +219,9 @@ struct BadgesViewPreviewContent: View {
                     }
                 }
             }
+    
             .navigationTitle("Badges")
+            
         }
     }
 }

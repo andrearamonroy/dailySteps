@@ -168,7 +168,8 @@ struct EnrollmentWithChallenge: Identifiable {
     let challengeIconName: String
     let targetSteps: Int
     let duration: Int
-    let completedAt: Date? 
+    let completedAt: Date?
+    var cardGradient: String
     
     init(from enrollment: CKRecord, challenge: CKRecord) {
         self.enrollmentID = enrollment.recordID.recordName
@@ -184,6 +185,17 @@ struct EnrollmentWithChallenge: Identifiable {
         self.targetSteps = challenge["targetSteps"] as? Int ?? 0
         self.duration = challenge["duration"] as? Int ?? 0
         self.completedAt = enrollment["completedAt"] as? Date
+        self.cardGradient = enrollment["cardGradient"] as? String ?? ""
+    }
+    var challengeCardGradient: LinearGradient {
+        switch cardGradient.lowercased() {
+        case "redorange":    return LinearGradient(colors: [.red, .orange],    startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "yelloworange": return LinearGradient(colors: [.yellow, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "greenteal":    return LinearGradient(colors: [.green, .teal],    startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "purplepink":   return LinearGradient(colors: [.purple, .pink],   startPoint: .topLeading, endPoint: .bottomTrailing)
+        case "pinkred":      return LinearGradient(colors: [.pink, .red],      startPoint: .topLeading, endPoint: .bottomTrailing)
+        default:             return LinearGradient(colors: [.blue, .purple],   startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
     }
 }
 
