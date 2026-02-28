@@ -140,10 +140,18 @@ CloudKitManager.shared.uploadAllIcons()
     
   */
     
-    
+    private var isUpdatingProgress = false
     
     
     func checkAndUpdateProgress(currentSteps: Int) {
+        
+        guard !isUpdatingProgress else {
+            print("⚠️ Already updating progress, skipping")
+            return
+        }
+        isUpdatingProgress = true
+        
+        
         cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
             switch result {
             case .success:

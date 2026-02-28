@@ -8,6 +8,7 @@
 import WidgetKit
 import SwiftUI
 import CoreData
+import HealthKit
 
 
 struct WidgetTheme {
@@ -23,6 +24,7 @@ func loadWidgetTheme() -> WidgetTheme {
 
 struct Provider: TimelineProvider {
 
+    private let healthStore = HKHealthStore()
 
     
     // Shared AppStorage for graceDays
@@ -65,6 +67,58 @@ struct Provider: TimelineProvider {
         return request
     }
     
+    
+    private func fetchStepsDirectly() async -> Int {
+        guard HKHealthStore.isHealthDataAvailable(),
+              let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
+            return getCurrentStepCount()
+        }
+        
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date())
+        
+        do {
+            let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<HKStatistics?, Error>) in
+                let query = HKStatisticsQuery(
+                    quantityType: stepType,
+                    quantitySamplePredicate: predicate,
+                    options: .cumulativeSum
+                ) { _, result, error in
+                    if let error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    continuation.resume(returning: result)
+                }
+                healthStore.execute(query)
+            }
+            return Int(result?.sumQuantity()?.doubleValue(for: HKUnit.count()) ?? 0)
+        } catch {
+            return getCurrentStepCount()
+        }
+    }
+        
+        func getTimeline(in context: Context, completion: @escaping (Timeline<CalendarEntry>) -> Void) {
+            Task {
+                let theme = loadWidgetTheme()
+                let stepCount = await fetchStepsDirectly()
+                let stepGoal = getCurrentGoal()
+                
+                let days: [Day]
+                do {
+                    days = try fetchDays()
+                } catch {
+                    days = []
+                }
+                
+                let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
+                let entry = CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal)
+                let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
+                completion(Timeline(entries: [entry], policy: .after(midnight)))
+            }
+        }
+    
+    
     func placeholder(in context: Context) -> CalendarEntry  {
         CalendarEntry(date: Date(),  days: [], streak: 0, theme: WidgetTheme(primary: BackgroundColor.aurora.color),                 stepCount: 0,
                       stepGoal: 100
@@ -91,33 +145,7 @@ struct Provider: TimelineProvider {
       
         
     }
-    func getTimeline(in context: Context, completion: @escaping (Timeline<CalendarEntry>) -> Void) {
-        do {
-            let theme = loadWidgetTheme()
-            let days = try fetchDays()
-            let streak = StreakCalculator.calculate(days: days, maxGraceDays: graceDays)
-            let stepCount = getCurrentStepCount()
-            let stepGoal = getCurrentGoal()
-            
-            print("🔍 stepCount: \(stepCount)")
-            print("🔍 stepGoal: \(stepGoal)")
-            
-            let entry = CalendarEntry(date: Date(), days: days, streak: streak, theme: theme, stepCount: stepCount, stepGoal: stepGoal)
-            let midnight = Calendar.current.startOfDay(for: Date().addingTimeInterval(86400))
-            completion(Timeline(entries: [entry], policy: .after(midnight)))
-        }catch {
-            print("❌ Widget failed to fetch days")
-            let fallback = CalendarEntry(
-                date: Date(),
-                days: [],
-                streak: 0,
-                theme: WidgetTheme(primary: BackgroundColor.aurora.color),
-                stepCount: getCurrentStepCount(),
-                stepGoal: getCurrentGoal()
-            )
-            completion(Timeline(entries: [fallback], policy: .atEnd))
-        }
-    }
+
 
 //    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {
 //        // Generate a list containing the contexts this widget is relevant in.
@@ -252,20 +280,20 @@ struct SmallWidgetView: View {
                 }
                 
                 // DEBUG - remove before shipping
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("steps: \(entry.stepCount)")
-                        .font(.system(size: 8))
-                        .foregroundColor(.yellow)
-                    Text("goal: \(entry.stepGoal)")
-                        .font(.system(size: 8))
-                        .foregroundColor(.yellow)
-                    Text("days: \(entry.days.count)")
-                        .font(.system(size: 8))
-                        .foregroundColor(.yellow)
-                    Text(UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?.integer(forKey: "currentStepCount").description ?? "UD nil")
-                        .font(.system(size: 8))
-                        .foregroundColor(.orange)
-                }
+//                VStack(alignment: .leading, spacing: 2) {
+//                    Text("steps: \(entry.stepCount)")
+//                        .font(.system(size: 8))
+//                        .foregroundColor(.yellow)
+//                    Text("goal: \(entry.stepGoal)")
+//                        .font(.system(size: 8))
+//                        .foregroundColor(.yellow)
+//                    Text("days: \(entry.days.count)")
+//                        .font(.system(size: 8))
+//                        .foregroundColor(.yellow)
+//                    Text(UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?.integer(forKey: "currentStepCount").description ?? "UD nil")
+//                        .font(.system(size: 8))
+//                        .foregroundColor(.orange)
+//                }
             }
             .padding(14)
         

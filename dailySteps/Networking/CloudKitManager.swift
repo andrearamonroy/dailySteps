@@ -979,10 +979,12 @@ extension CloudKitManager {
                         if lastCompleted == nil || !Calendar.current.isDate(lastCompleted!, inSameDayAs: today) {
                             let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
                             let totalDays = (enrollment["totalDaysCompleted"] as? Int) ?? 0
+                            print("totalDaysCompleted from CloudKit: \(totalDays)")
                             let newTotalDays = totalDays + 1
                             
                             enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
                             enrollment["totalDaysCompleted"] = newTotalDays as CKRecordValue
+                            print("totalDaysCompleted as new days \(totalDays)")
                             enrollment["lastCompletedDate"] = today as CKRecordValue
                             
                             // Check if challenge is now completed
