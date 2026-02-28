@@ -178,7 +178,7 @@ struct BadgesView: View {
                                         .padding(.top, 8)
                                         
                                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160))], spacing: 16) {
-                                            ForEach(completedBadges, id: \.enrollmentID) { badge in
+                                            ForEach(sortedBadges, id: \.enrollmentID) { badge in
                                                 BadgeCard(badge: badge)
                                             }
                                         }
@@ -191,6 +191,7 @@ struct BadgesView: View {
                 }
             }
             .navigationTitle(selectedTab == 0 ? "Badges" : "Calendar")
+            .navigationBarTitleDisplayMode(.inline)
             .id(selectedTab)
             .onAppear {
                 if !hasLoadedOnce {
@@ -198,7 +199,32 @@ struct BadgesView: View {
                     hasLoadedOnce = true
                 }
             }
-          
+        
+            .toolbar {
+                //only show if there's badges
+                if selectedTab == 0 && !completedBadges.isEmpty {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                sortNewestFirst.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
+                                    .font(.caption)
+                                Text(sortNewestFirst ? "New" : "Old")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                         
+                            .background(Color(.systemGray6).opacity(0.1))
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeCompleted"))) { _ in
                 hasLoadedOnce = false
                 loadBadges()

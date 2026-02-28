@@ -141,13 +141,13 @@ struct ChallengesListView: View {
                                         HStack(spacing: 4) {
                                             Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
                                                 .font(.caption)
-                                            Text(sortNewestFirst ? "Newest" : "Oldest")
+                                            Text(sortNewestFirst ? "New" : "Old")
                                                 .font(.caption)
                                                 .fontWeight(.medium)
                                         }
                                         .padding(.horizontal, 10)
                                         .padding(.vertical, 6)
-                                        .background(Color.white.opacity(0.1))
+                                        .background(Color.white)
                                         .foregroundColor(.blue)
                                         .cornerRadius(8)
                                     }

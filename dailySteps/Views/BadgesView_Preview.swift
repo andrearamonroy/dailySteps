@@ -23,6 +23,7 @@ struct BadgesView_Previews: PreviewProvider {
 struct BadgesViewWithSampleData: View {
     @StateObject private var appState = AppState()
     
+    
     var body: some View {
         BadgesViewPreviewContent()
             .environmentObject(appState)
@@ -33,6 +34,14 @@ struct BadgesViewPreviewContent: View {
     @EnvironmentObject var appState: AppState
     @State private var completedBadges: [EnrollmentWithChallenge] = sampleBadges
     @State private var isLoading = false
+    @State private var sortNewestFirst = true
+    
+    var sortedBadges: [EnrollmentWithChallenge] {
+        completedBadges.sorted {
+            guard let a = $0.completedAt, let b = $1.completedAt else { return false }
+            return sortNewestFirst ? a > b : a < b
+        }
+    }
     
     static var sampleBadges: [EnrollmentWithChallenge] = {
         // Create mock CKRecords for preview
@@ -221,7 +230,37 @@ struct BadgesViewPreviewContent: View {
             }
     
             .navigationTitle("Badges")
-            
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                //only show if there's badges
+              
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                sortNewestFirst.toggle()
+                            }
+                        } label: {
+        
+                            
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: sortNewestFirst ? "arrow.down" : "arrow.up")
+                                    .font(.caption)
+                                Text(sortNewestFirst ? "New" : "Old")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                         
+                            .background(Color(.systemGray6).opacity(0.1))
+                            .foregroundColor(.blue)
+                            
+                            
+                        }
+                    }
+                
+            }
         }
     }
 }
