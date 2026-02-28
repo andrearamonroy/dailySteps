@@ -190,6 +190,7 @@ struct BadgesView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeCompleted"))) { _ in
+                hasLoadedOnce = false
                 loadBadges()
             }
         }
@@ -261,24 +262,11 @@ struct BadgeCard: View {
     var body: some View {
         VStack(spacing: 14) {
             // Badge icon with gradient background
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: gradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-                    .shadow(color: gradientColors[0].opacity(0.3), radius: 8, x: 0, y: 4)
-                
-                Image(badge.challengeIconName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 50, height: 50)
-            }
-            .padding(.top, 8)
+            Image(badge.challengeIconName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 80, height: 80)
+                .padding(.top, 8)
             
             VStack(spacing: 6) {
                 Text(badge.challengeName)

@@ -999,16 +999,28 @@ extension CloudKitManager {
                                 if let error = error {
                                     completion(.failure(error))
                                 } else {
-                                    print(" Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
+                                    
+                                    
+                                    
+                                    print("CloudKit: Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
+                                       
+                                       if newTotalDays >= duration {
+                                           DispatchQueue.main.async {
+                                               NotificationCenter.default.post(name: NSNotification.Name("ChallengeCompleted"), object: nil)
+                                           }
+                                       }
+                                    
                                     completion(.success(()))
                                 }
                             }
                         } else {
                             // Already updated today
+                            
                             completion(.success(()))
                         }
                     } else {
                         // Goal not met yet
+                      
                         completion(.success(()))
                     }
                     

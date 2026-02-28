@@ -152,7 +152,12 @@ CloudKitManager.shared.uploadAllIcons()
         isUpdatingProgress = true
         
         
-        cloudKitManager.updateTodayProgress(stepCount: currentSteps) { result in
+        cloudKitManager.updateTodayProgress(stepCount: currentSteps) { [weak self] result in
+            
+            guard let self = self else { return }
+            self.isUpdatingProgress = false
+            
+            
             switch result {
             case .success:
                 print("✅ Progress updated successfully")
