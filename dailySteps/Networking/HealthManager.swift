@@ -112,38 +112,6 @@ class HealthManager: ObservableObject {
         }
     }
 
-    // ✅ This fires even when app is backgrounded — HealthKit wakes the app
-    private func enableBackgroundDelivery() {
-        guard let stepType = stepType else { return }
-        
-        healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
-            if success {
-                print("✅ Background delivery enabled")
-            } else if let error = error {
-                print("❌ Background delivery failed: \(error)")
-            }
-        }
-    }
-
-    // ✅ Observer that fires even when app is in background or on another tab
-    private func observeStepChanges() {
-        guard let stepType = stepType else { return }
-        
-        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completionHandler, error in
-            guard error == nil else {
-                print("❌ Observer error: \(error!)")
-                completionHandler()
-                return
-            }
-            
-            print("🏃 HealthKit pushed new step data (background or foreground)")
-            self?.refreshTodaySteps()  // ✅ Fires on any tab, any state
-            completionHandler()        // ✅ Must call or HealthKit stops delivering
-        }
-        
-        healthStore.execute(query)
-    }
-
     // MARK: - High-level state update
     func refreshTodaySteps() {
         fetchTodaySteps { [weak self] total in

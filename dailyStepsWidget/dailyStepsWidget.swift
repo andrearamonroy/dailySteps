@@ -74,6 +74,9 @@ struct Provider: TimelineProvider {
             return getCurrentStepCount()
         }
         
+        // ✅ Widget needs its own authorization request
+         try? await healthStore.requestAuthorization(toShare: [], read: [stepType])
+        
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date())
         
