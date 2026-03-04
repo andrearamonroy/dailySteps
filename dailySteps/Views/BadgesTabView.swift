@@ -1,10 +1,6 @@
 import SwiftUI
 import Foundation
-
-
-import SwiftUI
-import Foundation
-
+import CoreData
 
 //MARK: BADGES VIEW ORIGINAL -- AND WORKING VIEW
 
@@ -16,6 +12,13 @@ struct BadgesView: View {
     @State private var hasLoadedOnce = false
     @State private var selectedTab: Int = 0  // 0 = Badges, 1 = Calendar
     @State private var sortNewestFirst = true
+    
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Day.date, ascending: true)],
+        predicate: NSPredicate(format: "(date >= %@) AND (date <= %@)",
+                               Date().startOfCalendarWithPrefixDays as CVarArg,
+                               Date().endOfMonth as CVarArg))
+    private var days: FetchedResults<Day>
     
     private var sortedBadges: [EnrollmentWithChallenge] {
         completedBadges.sorted {
@@ -194,10 +197,19 @@ struct BadgesView: View {
             .navigationBarTitleDisplayMode(.inline)
             .id(selectedTab)
             .onAppear {
+                
+                
+                
                 if !hasLoadedOnce {
                     loadBadges()
                     hasLoadedOnce = true
                 }
+                
+                print("days: Days fetched: \(days.count)")
+                print("days: startOfCalendarWithPrefixDays: \(Date().startOfCalendarWithPrefixDays)")
+                print("days: endOfMonth: \(Date().endOfMonth)")
+                print("days: startOfMonth: \(Date().startOfMonth)")
+                print("days: numberOfDaysInMonth: \(Date().numberOfDaysInMonth)")
             }
         
             .toolbar {

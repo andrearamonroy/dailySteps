@@ -45,9 +45,17 @@ struct CalendarView: View {
                     return calendar.isDate(date, equalTo: .now, toGranularity: .month)
                 }
                 
-                if currentMonthDays.isEmpty {
-                    createMonthDays(for: .now.startOfPreviousMonth)
+                // ✅ Check for full month count, not just isEmpty
+                if currentMonthDays.count < Date().numberOfDaysInMonth {
+                    print("📅 Only \(currentMonthDays.count)/\(Date().numberOfDaysInMonth) days found — rebuilding month")
+                    
+                    // ✅ Delete incomplete days first to avoid duplicates
+                    currentMonthDays.forEach { viewContext.delete($0) }
+                    
+                   // createMonthDays(for: .now.startOfPreviousMonth)
                     createMonthDays(for: .now)
+                    
+                    try? viewContext.save()
                 }
             }
         }
