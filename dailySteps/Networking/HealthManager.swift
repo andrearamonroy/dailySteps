@@ -49,6 +49,7 @@ class HealthManager: ObservableObject {
             do {
                 if HKHealthStore.isHealthDataAvailable() {
                     try await healthStore.requestAuthorization(toShare: [], read: [stepType])
+                    
                     refreshTodaySteps()
                     enableBackgroundDelivery()
                     observeStepChanges()
@@ -60,6 +61,9 @@ class HealthManager: ObservableObject {
             }
         }
     }
+    
+    
+
     
     // MARK: - Periodic Refresh (Most Reliable)
     private func startPeriodicRefresh() {
@@ -94,18 +98,50 @@ class HealthManager: ObservableObject {
         ) { [weak self] _ in
             print("📱 App became active - refreshing steps")
             self?.refreshTodaySteps()
-            self?.startPeriodicRefresh() // Restart timer
+            self?.startPeriodicRefresh()
         }
         
-        // Stop timer when app goes to background (save battery)
+        // Stop foreground timer when backgrounded
         NotificationCenter.default.addObserver(
             forName: UIApplication.willResignActiveNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            print("📱 App going to background - stopping timer")
+            print("📱 App going to background - stopping foreground timer")
             self?.stopPeriodicRefresh()
         }
+    }
+
+    // ✅ This fires even when app is backgrounded — HealthKit wakes the app
+    private func enableBackgroundDelivery() {
+        guard let stepType = stepType else { return }
+        
+        healthStore.enableBackgroundDelivery(for: stepType, frequency: .immediate) { success, error in
+            if success {
+                print("✅ Background delivery enabled")
+            } else if let error = error {
+                print("❌ Background delivery failed: \(error)")
+            }
+        }
+    }
+
+    // ✅ Observer that fires even when app is in background or on another tab
+    private func observeStepChanges() {
+        guard let stepType = stepType else { return }
+        
+        let query = HKObserverQuery(sampleType: stepType, predicate: nil) { [weak self] _, completionHandler, error in
+            guard error == nil else {
+                print("❌ Observer error: \(error!)")
+                completionHandler()
+                return
+            }
+            
+            print("🏃 HealthKit pushed new step data (background or foreground)")
+            self?.refreshTodaySteps()  // ✅ Fires on any tab, any state
+            completionHandler()        // ✅ Must call or HealthKit stops delivering
+        }
+        
+        healthStore.execute(query)
     }
 
     // MARK: - High-level state update

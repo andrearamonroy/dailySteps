@@ -34,6 +34,8 @@ class CloudKitManager : ObservableObject {
         private let cacheExpirationInterval: TimeInterval = 300 // 5 minutes
         
     
+    private var isUpdatingProgress = false
+    
     // MARK: - Initialization
     
     private init() {
@@ -952,16 +954,29 @@ extension CloudKitManager {
             }
         }
     
+ 
    
         /// Update today's progress when goal is reached
         func updateTodayProgress(stepCount: Int, completion: @escaping (Result<Void, Error>) -> Void) {
+            
+            // ✅ Prevent concurrent calls
+              guard !isUpdatingProgress else {
+                  completion(.success(()))
+                  return
+              }
+              isUpdatingProgress = true
+            
             fetchActiveEnrollment { [weak self] result in
                 guard let self = self else { return }
+                
+           
                 
                 switch result {
                 case .success(let (challenge, enrollment)):
                     guard let targetSteps = challenge["targetSteps"] as? Int,
-                          let duration = challenge["duration"] as? Int else {
+                          let duration = challenge["duration"] as? Int,
+                          let expectedEndDate = enrollment["expectedEndDate"] as? Date
+                    else {
                         completion(.failure(NSError(
                             domain: "CloudKit",
                             code: -1,
@@ -970,25 +985,34 @@ extension CloudKitManager {
                         return
                     }
                     
+              
+                    
+                  
+                    
                     // Only update if goal is met today
                     if stepCount >= targetSteps {
                         let today = Calendar.current.startOfDay(for: Date())
+                        //comapares date only not time
+                        let expectedEndDay = Calendar.current.startOfDay(for: expectedEndDate)
+                        
                         let lastCompleted = enrollment["lastCompletedDate"] as? Date
                         
                         // Only update if we haven't already marked today as complete
                         if lastCompleted == nil || !Calendar.current.isDate(lastCompleted!, inSameDayAs: today) {
                             let currentStreak = (enrollment["currentStreak"] as? Int) ?? 0
                             let totalDays = (enrollment["totalDaysCompleted"] as? Int) ?? 0
-                            print("totalDaysCompleted from CloudKit: \(totalDays)")
+                            print("totalDaysCompleted 2 from CloudKit: \(totalDays)")
                             let newTotalDays = totalDays + 1
                             
                             enrollment["currentStreak"] = (currentStreak + 1) as CKRecordValue
                             enrollment["totalDaysCompleted"] = newTotalDays as CKRecordValue
-                            print("totalDaysCompleted as new days \(totalDays)")
+                            
+                            print("totalDaysCompleted 3 as new days \(totalDays)")
                             enrollment["lastCompletedDate"] = today as CKRecordValue
                             
+                        
                             // Check if challenge is now completed
-                            if newTotalDays >= duration {
+                            if newTotalDays >= duration &&  today >= expectedEndDay {
                                 enrollment["isActive"] = false as CKRecordValue
                                 enrollment["endedAt"] = Date() as CKRecordValue
                                 enrollment["endReason"] = "completed" as CKRecordValue
@@ -996,6 +1020,9 @@ extension CloudKitManager {
                             }
                             
                             self.publicDatabase.save(enrollment) { _, error in
+                                
+                                self.isUpdatingProgress = false  //always reset
+                                
                                 if let error = error {
                                     completion(.failure(error))
                                 } else {
@@ -1004,7 +1031,7 @@ extension CloudKitManager {
                                     
                                     print("CloudKit: Updated challenge progress: \(newTotalDays)/\(duration) days, streak \(currentStreak + 1)")
                                        
-                                       if newTotalDays >= duration {
+                                       if newTotalDays >= duration && today >= expectedEndDay  {
                                            DispatchQueue.main.async {
                                                NotificationCenter.default.post(name: NSNotification.Name("ChallengeCompleted"), object: nil)
                                            }
@@ -1015,16 +1042,17 @@ extension CloudKitManager {
                             }
                         } else {
                             // Already updated today
-                            
+                            self.isUpdatingProgress = false
                             completion(.success(()))
                         }
                     } else {
                         // Goal not met yet
-                      
+                        self.isUpdatingProgress = false
                         completion(.success(()))
                     }
                     
                 case .failure(let error):
+                    self.isUpdatingProgress = false
                     completion(.failure(error))
                 }
             }

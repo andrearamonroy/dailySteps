@@ -236,7 +236,7 @@ struct StepView: View {
                 mainViewModel.healthManager.refreshTodaySteps()
                 
                 //update progress after refresh
-                mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+//                mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             }
         }
         
@@ -336,8 +336,8 @@ struct StepView: View {
             mainViewModel.healthManager.refreshTodaySteps()
             
             //update progress with current steps
-            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-            
+//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+//            
            
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             
@@ -359,7 +359,7 @@ struct StepView: View {
             currentDate = Date()
             hasShownGoalCelebrationToday = false  // reset so celebration can fire again new day
             mainViewModel.healthManager.refreshTodaySteps()
-            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             loadActiveChallenge(forceRefresh: true)
         }
 
@@ -367,7 +367,7 @@ struct StepView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             currentDate = Date()
             mainViewModel.healthManager.refreshTodaySteps()
-            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             loadActiveChallenge(forceRefresh: false)
         }
         
