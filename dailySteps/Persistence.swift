@@ -62,7 +62,7 @@ struct PersistenceController {
         
         container.loadPersistentStores { _, error in
             if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                print("Core Data load error: \(error), \(error.userInfo)")
             }
         }
         
@@ -76,21 +76,21 @@ struct PersistenceController {
         let coordinator = container.persistentStoreCoordinator
         
         guard let oldStore = coordinator.persistentStore(for: oldStoreURL) else { return }
-        print("old store deleted")
-        
         
         do {
             let _ = try coordinator.migratePersistentStore(oldStore, to: sharedStoredURL, type: .sqlite)
-            print("migrated from old to new store successfully")
+            print(" Migrated from old to new store successfully")
         } catch {
-            fatalError("Unable to migrate to shared to store : \(error)")
+            print("Migration failed (may already be migrated): \(error)")
+            return // Don't fatal — widget keeps running
         }
         
         do {
             try FileManager.default.removeItem(at: oldStoreURL)
-            print("old store deleted")
+            print(" Old store deleted")
         } catch {
-            print("unable to delete old store")
+            print(" Unable to delete old store: \(error)")
+            // Not fatal — old store not existing is fine
         }
     }
     

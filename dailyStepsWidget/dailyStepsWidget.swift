@@ -74,8 +74,12 @@ struct Provider: TimelineProvider {
             return getCurrentStepCount()
         }
         
-        // ✅ Widget needs its own authorization request
-         try? await healthStore.requestAuthorization(toShare: [], read: [stepType])
+        // ✅ Check status instead of requesting — widgets can't show permission dialogs
+        let status = healthStore.authorizationStatus(for: stepType)
+        guard status == .sharingAuthorized else {
+            print("⚠️ Widget: HealthKit not authorized, falling back to UserDefaults")
+            return getCurrentStepCount()
+        }
         
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: Date())
@@ -97,6 +101,7 @@ struct Provider: TimelineProvider {
             }
             return Int(result?.sumQuantity()?.doubleValue(for: HKUnit.count()) ?? 0)
         } catch {
+            print("⚠️ Widget: HealthKit query failed, falling back to UserDefaults")
             return getCurrentStepCount()
         }
     }
