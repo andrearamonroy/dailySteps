@@ -55,6 +55,10 @@ class HealthManager: ObservableObject {
                     observeStepChanges()
                     startPeriodicRefresh() // Add timer
                     setupAppLifecycleObservers() // Add lifecycle monitoring
+                    
+                    //functions to update step count on a new day and its widgets
+                    await loadInitialStepCount()
+                    observeDayChanges()
                 }
             } catch {
                 print("steps: HealthKit authorization failed: \(error)")
@@ -62,6 +66,34 @@ class HealthManager: ObservableObject {
         }
     }
     
+    private func observeDayChanges() {
+        NotificationCenter.default.addObserver(
+            forName: .NSCalendarDayChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.stepCount = 0
+            }
+        }
+    }
+    
+    @MainActor
+    private func loadInitialStepCount() {
+        guard let sharedDefaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return }
+        
+        let savedDate = sharedDefaults.object(forKey: "stepCountDate") as? Date ?? .distantPast
+        
+        if Calendar.current.isDateInToday(savedDate) {
+            stepCount = sharedDefaults.integer(forKey: "currentStepCount")
+        } else {
+            // New day — reset
+            stepCount = 0
+            sharedDefaults.set(0, forKey: "currentStepCount")
+            sharedDefaults.set(Date(), forKey: "stepCountDate")
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
     
 
     
