@@ -333,24 +333,24 @@ struct StepView: View {
         
         
         .onAppear {
-            mainViewModel.healthManager.refreshTodaySteps()
             
-            //update progress with current steps
-//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-//            
-           
-            checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
-            
-            // Only load challenge if cache expired or no data
-            if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
-                loadActiveChallenge(forceRefresh: false)
-            }
-            
-            
-            if appState.dismissChallengeListView == true {
-                loadActiveChallenge(forceRefresh: true)
-                //reset
-                //appState.dismissChallengeListView = false
+            mainViewModel.healthManager.refreshTodaySteps {
+                
+                
+                checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
+                
+                // Only load challenge if cache expired or no data
+                if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
+                    loadActiveChallenge(forceRefresh: false)
+                }
+                
+                
+                if appState.dismissChallengeListView == true {
+                    loadActiveChallenge(forceRefresh: true)
+                    //reset
+                    //appState.dismissChallengeListView = false
+                }
+                
             }
         }
         
@@ -358,17 +358,19 @@ struct StepView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             currentDate = Date()
             hasShownGoalCelebrationToday = false  // reset so celebration can fire again new day
-            mainViewModel.healthManager.refreshTodaySteps()
-//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-            loadActiveChallenge(forceRefresh: true)
+            // Refresh steps first, THEN load challenge with fresh data
+             mainViewModel.healthManager.refreshTodaySteps {
+                 loadActiveChallenge(forceRefresh: false)
+             }
         }
 
         // Fires when app comes back from background
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             currentDate = Date()
-            mainViewModel.healthManager.refreshTodaySteps()
-//            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-            loadActiveChallenge(forceRefresh: false)
+            // Refresh steps first, THEN load challenge with fresh data
+             mainViewModel.healthManager.refreshTodaySteps {
+                 loadActiveChallenge(forceRefresh: false)
+             }
         }
         
     
@@ -378,17 +380,20 @@ struct StepView: View {
             loadActiveChallenge(forceRefresh: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnded"))) { _ in
-            // Force refresh when challenge ends
-            loadActiveChallenge(forceRefresh: true)
+            // Refresh steps first, THEN load challenge with fresh data
+             mainViewModel.healthManager.refreshTodaySteps {
+                 loadActiveChallenge(forceRefresh: false)
+             }
         }
         
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowFeedbackPrompt"))) { _ in
             triggerFeedbackPromptIfNeeded()
         }
         .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
-            loadActiveChallenge(forceRefresh: true)
-            //reset to false
-            //appState.dismissChallengeListView = false
+            mainViewModel.healthManager.refreshTodaySteps {
+                loadActiveChallenge(forceRefresh: true)
+            }
+          
         }
         
 

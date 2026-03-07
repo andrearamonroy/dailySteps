@@ -146,7 +146,7 @@ class HealthManager: ObservableObject {
     }
 
     // MARK: - High-level state update
-    func refreshTodaySteps() {
+    func refreshTodaySteps(completion: (() -> Void)? = nil) {
         fetchTodaySteps { [weak self] total in
             let stepInt = Int(total.rounded(.down))
 
@@ -185,6 +185,8 @@ class HealthManager: ObservableObject {
             
                 
                 print("📊 Steps updated to: \(stepInt)")
+                
+                completion?()
             }
         }
     }
