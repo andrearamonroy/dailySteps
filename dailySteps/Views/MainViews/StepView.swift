@@ -339,6 +339,7 @@ struct StepView: View {
                 
                 checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
                 
+            }
                 // Only load challenge if cache expired or no data
                 if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
                     loadActiveChallenge(forceRefresh: false)
@@ -351,7 +352,7 @@ struct StepView: View {
                     //appState.dismissChallengeListView = false
                 }
                 
-            }
+            
         }
         
         // Fires automatically at midnight
