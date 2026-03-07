@@ -171,10 +171,24 @@ CloudKitManager.shared.uploadAllIcons()
                         let duration = challenge["duration"] as? Int ?? 1
                         let totalDaysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
                         
+                        
+                        // ── Expiry check ──────────────────────────────────────
+                        if isActive,
+                           let rawEndDate = enrollment["expectedEndDate"] as? Date {
+                            let today = Calendar.current.startOfDay(for: Date())
+                            let expectedEndDay = Calendar.current.startOfDay(for: rawEndDate)
+                            
+                            if today > expectedEndDay {
+                                print("⏰ Challenge expired")
+                                self.cloudKitManager.endChallenge(enrollment: enrollment, reason: "expired") { _ in }
+                                return  // no need to check anything else
+                            }
+                        }
+                        
                         // Only send milestone if a day was actually just completed
-                                  if totalDaysCompleted > 0 {
-                                      NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
-                                  }
+                        if totalDaysCompleted > 0 {
+                            NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
+                        }
                         
                         // Check if challenge just completed
                         if !isActive {

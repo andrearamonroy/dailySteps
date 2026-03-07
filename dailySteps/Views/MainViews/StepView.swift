@@ -856,9 +856,13 @@ struct ActiveChallengeCardView: View {
     }
     
     var expectedEndDate: Date {
-        Calendar.current.date(byAdding: .day, value: duration, to: startDate) ?? Date()
+        guard let date = enrollment["expectedEndDate"] as? Date else {
+            return Calendar.current.startOfDay(for: Date())
+        }
+        return Calendar.current.startOfDay(for: date)
     }
-    
+       
+
     var daysCompleted: Int {
         enrollment["totalDaysCompleted"] as? Int ?? 0
     }

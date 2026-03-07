@@ -179,7 +179,6 @@ struct ChallengeCompletedOverlay: View {
                     }
 
                     // Secondary - dismiss
-                    // Secondary - dismiss
                     Button {
                         dismissCard()
                         // Post notification to refresh challenges
