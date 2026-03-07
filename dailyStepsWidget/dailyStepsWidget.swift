@@ -36,15 +36,16 @@ struct Provider: TimelineProvider {
     var graceDays: Int = 0
     
     private func getCurrentStepCount() -> Int {
-        guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else {
-            print("❌ UserDefaults suite is NIL")
+        guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return 0 }
+        let savedDate = defaults.object(forKey: "stepCountDate") as? Date ?? .distantPast
+        guard Calendar.current.isDateInToday(savedDate) else {
+            print("⚠️ Widget: cached steps are from a previous day, returning 0")
             return 0
         }
-        let count = defaults.integer(forKey: "currentStepCount")
-        print("✅ UserDefaults suite OK, stepCount = \(count)")
-        return count
+        return defaults.integer(forKey: "currentStepCount")
     }
     
+
     private func getCurrentGoal() -> Int {
         guard let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") else { return 10_000 }
         let goal = defaults.integer(forKey: "stepGoal")
