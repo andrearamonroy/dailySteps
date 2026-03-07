@@ -200,10 +200,12 @@ struct BadgesView: View {
                 
                 
                 
-                if !hasLoadedOnce {
-                    loadBadges()
-                    hasLoadedOnce = true
-                }
+//                if !hasLoadedOnce {
+//                    loadBadges()
+//                    hasLoadedOnce = true
+//                }
+                
+                loadBadges()
                 
                 print("days: Days fetched: \(days.count)")
                 print("days: startOfCalendarWithPrefixDays: \(Date().startOfCalendarWithPrefixDays)")

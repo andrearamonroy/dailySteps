@@ -222,14 +222,28 @@ class CloudKitReferenceAdder {
     }
     
     private func createEnrollmentWithReferences(userRecord: CKRecord, challengeRecord: CKRecord, completion: @escaping (CKRecord?) -> Void) {
-        let enrollmentRecord = manager.createChallengeEnrollmentRecord(
-            userRecord: userRecord,
-            challengeRecord: challengeRecord,
-            enrollmentType: "solo",
-            startDate: Date(),
-            endDate: Date().addingTimeInterval(86400), // +1 day
-            groupID: nil
-        )
+        
+        
+        // Read duration from the challenge
+            let duration = challengeRecord["duration"] as? Int ?? 1
+            
+            let startDate = Date()
+            // (duration - 1) because day 1 is today, not tomorrow
+            let endDate = Calendar.current.date(
+                byAdding: .day,
+                value: duration - 1,
+                to: Calendar.current.startOfDay(for: startDate)
+            ) ?? startDate
+
+            let enrollmentRecord = manager.createChallengeEnrollmentRecord(
+                userRecord: userRecord,
+                challengeRecord: challengeRecord,
+                enrollmentType: "solo",
+                startDate: startDate,
+                endDate: endDate,
+                groupID: nil
+            )
+        
         
         manager.saveRecord(enrollmentRecord, to: .private) { result in
             if case .success(let savedRecord) = result {

@@ -149,6 +149,7 @@ CloudKitManager.shared.uploadAllIcons()
             print("⚠️ Already updating progress, skipping")
             return
         }
+        
         isUpdatingProgress = true
         
         
@@ -166,12 +167,14 @@ CloudKitManager.shared.uploadAllIcons()
                 self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
                     if case .success(let (challenge, enrollment)) = enrollmentResult {
                         let streak = enrollment["currentStreak"] as? Int ?? 0
-                        let isActive = enrollment["isActive"] as? Bool ?? true
+                        let isActive = (enrollment["isActive"] as? Int ?? 1) == 1
                         let duration = challenge["duration"] as? Int ?? 1
                         let totalDaysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
                         
-                        // Send challenge streak milestone notification
-                        NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
+                        // Only send milestone if a day was actually just completed
+                                  if totalDaysCompleted > 0 {
+                                      NotificationManager.shared.sendStreakMilestone(streak: streak, type: .challenge)
+                                  }
                         
                         // Check if challenge just completed
                         if !isActive {

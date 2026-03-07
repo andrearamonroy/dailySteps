@@ -74,6 +74,7 @@ class HealthManager: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.stepCount = 0
+                self?.checkYesterdayStepGoalIfNeeded()
             }
         }
     }
@@ -148,31 +149,29 @@ class HealthManager: ObservableObject {
     func refreshTodaySteps() {
         fetchTodaySteps { [weak self] total in
             let stepInt = Int(total.rounded(.down))
-            
+
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
+
+                let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")
                 
-                // Always write to UserDefaults for widget, even if UI value hasn't changed
-                if let defaults = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps") {
-                    defaults.set(stepInt, forKey: "currentStepCount")
-                    defaults.set(Date(), forKey: "stepCountDate")
+                // Read BEFORE writing
+                let lastUpdateDate = defaults?.object(forKey: "stepCountDate") as? Date ?? .distantPast
+                let isNewDay = !Calendar.current.isDateInToday(lastUpdateDate)
+
+                // Now write
+                defaults?.set(stepInt, forKey: "currentStepCount")
+                defaults?.set(Date(), forKey: "stepCountDate")
+
+                guard stepInt != self.stepCount else { return }
+
+                if stepInt == 0 && self.stepCount > 0 && !isNewDay {
+                    print("⚠️ Ignoring zero — same day, keeping: \(self.stepCount)")
+                    return
                 }
                 
-                
-                guard stepInt != self.stepCount else { return }
-                
-                print("🔄 Updating steps: old=\(self.stepCount), new=\(stepInt)")
-                
-                // Never overwrite a real step count with zero UNLESS it's a new day
-                if stepInt == 0 && self.stepCount > 0 {
-                    let lastUpdateDate = UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")?.object(forKey: "stepCountDate") as? Date ?? Date()
-                    let isNewDay = !Calendar.current.isDateInToday(lastUpdateDate)
-                    
-                    if !isNewDay {
-                        print("⚠️ Ignoring zero step update — same day, keeping: \(self.stepCount)")
-                        return
-                    }
-                    print("🌅 New day detected — resetting step count to 0")
+                if isNewDay {
+                    print("🌅 New day detected — allowing reset to 0")
                 }
                 
                 // Always update to trigger UI refresh
@@ -274,7 +273,8 @@ class HealthManager: ObservableObject {
                 print("✅ Goal reached — saved didSteps = true")
             }
 
-            try context.save()
+            //not saving to core data bc im already save in saveTodaysSteps and it can cause a race condition
+            //try context.save()
             refreshWidget()
 
         } catch {

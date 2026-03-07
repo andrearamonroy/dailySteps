@@ -371,10 +371,7 @@ struct StepView: View {
             loadActiveChallenge(forceRefresh: false)
         }
         
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnded"))) { _ in
-            // Force refresh when challenge ends
-            loadActiveChallenge(forceRefresh: true)
-        }
+    
         
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnrolled"))) { _ in
             // Force refresh when user enrolls in a new challenge
@@ -398,6 +395,7 @@ struct StepView: View {
         
         .onChange(of: mainViewModel.healthManager.stepCount) { oldValue, newValue in
             if newValue > oldValue {
+                
                 mainViewModel.checkAndUpdateProgress(currentSteps: newValue)
                 
                 // Send encouraging notifications
@@ -499,16 +497,6 @@ struct StepView: View {
             
     
             withAnimation { showGoalReachedOverlay = true }
-            
-            /*
-            if mainViewModel.shouldShowFeedbackPrompt() {
-                       DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                           withAnimation {
-                               showFeedbackPrompt = true
-                           }
-                       }
-                   }
-             */
         }
     }
     

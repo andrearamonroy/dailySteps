@@ -78,7 +78,7 @@ struct CalendarView: View {
 
 
 
-// MARK: - Calendar Grid
+
 // MARK: - Calendar Grid (widget-safe version)
 struct ColorCodedCalendarGrid: View {
     let days: [Day]
