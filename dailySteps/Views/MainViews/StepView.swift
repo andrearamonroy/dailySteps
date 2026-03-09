@@ -36,7 +36,7 @@ struct StepView: View {
     
     ///congrats card
     @State private var showGoalReachedOverlay = false
-    @State private var hasShownGoalCelebrationToday = false
+
     @AppStorage("lastGoalCelebrationDate") private var lastCelebrationDateStr: String = ""
     
     //failed banner
@@ -358,7 +358,7 @@ struct StepView: View {
         // Fires automatically at midnight
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             currentDate = Date()
-            hasShownGoalCelebrationToday = false  // reset so celebration can fire again new day
+    
             // Refresh steps first, THEN load challenge with fresh data
              mainViewModel.healthManager.refreshTodaySteps {
                  loadActiveChallenge(forceRefresh: false)
@@ -490,18 +490,14 @@ struct StepView: View {
     private func checkGoalCelebration(steps: Int) {
         let goal = activeChallenge?["targetSteps"] as? Int ?? Int(mainViewModel.stepGoal)
         guard steps >= goal else { return }
-        guard !hasShownGoalCelebrationToday else { return }
 
-        // Only once per calendar day
+        // @AppStorage is the single source of truth
         if let last = ISO8601DateFormatter().date(from: lastCelebrationDateStr),
            Calendar.current.isDateInToday(last) { return }
 
-        hasShownGoalCelebrationToday = true
         lastCelebrationDateStr = ISO8601DateFormatter().string(from: Date())
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            
-    
             withAnimation { showGoalReachedOverlay = true }
         }
     }
@@ -531,10 +527,21 @@ struct StepView: View {
         // Don't fire if already completed
         if enrollment["completedAt"] as? Date != nil { return }
 
-        let totalDays   = challenge["duration"] as? Int ?? 30
+        let totalDays     = challenge["duration"] as? Int ?? 30
         let daysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
-        let targetSteps = challenge["targetSteps"] as? Int ?? 10000
-        let todaySteps  = mainViewModel.healthManager.stepCount
+        let targetSteps   = challenge["targetSteps"] as? Int ?? 10000
+        let todaySteps    = mainViewModel.healthManager.stepCount
+
+        // Safety check — don't complete before expectedEndDate
+        if let expectedEndDate = enrollment["expectedEndDate"] as? Date {
+            let calendar = Calendar.current
+            let endDay   = calendar.startOfDay(for: expectedEndDate)
+            let today    = calendar.startOfDay(for: Date())
+            guard today >= endDay else {
+                print("⏳ Not completing — today (\(today)) is before expectedEndDate (\(endDay))")
+                return
+            }
+        }
 
         guard daysCompleted >= totalDays && todaySteps >= targetSteps else { return }
 
@@ -542,24 +549,22 @@ struct StepView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    appState.completedChallengeName     = challenge["name"] as? String ?? "Challenge"
-                    appState.completedChallengeIconName = challenge.challengeIconName
-                    appState.completedChallengeDays     = totalDays
-                    appState.completedChallengeSteps    = targetSteps
+                    self.appState.completedChallengeName     = challenge["name"] as? String ?? "Challenge"
+                    self.appState.completedChallengeIconName = challenge.challengeIconName
+                    self.appState.completedChallengeDays     = totalDays
+                    self.appState.completedChallengeSteps    = targetSteps
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                         withAnimation {
                             self.appState.showChallengeCompletedOverlay = true
                         }
                     }
-                    
                 case .failure(let error):
                     print("❌ Failed to mark complete: \(error.localizedDescription)")
                 }
             }
         }
     }
-     
 
    
     
@@ -587,7 +592,7 @@ struct StepView: View {
           
                     // ADD THESE TWO:
                     self.checkIfChallengeJustCompleted(challenge: challenge, enrollment: enrollment)
-                    self.checkGoalCelebration(steps: self.mainViewModel.healthManager.stepCount)
+                    //self.checkGoalCelebration(steps: self.mainViewModel.healthManager.stepCount)
 
                     self.checkChallengeFailure(challenge: challenge, enrollment: enrollment)
                     print("✅ Loaded active challenge: \(challenge["name"] as? String ?? "Unknown")")

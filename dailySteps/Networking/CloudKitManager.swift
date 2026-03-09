@@ -935,10 +935,13 @@ extension CloudKitManager {
             enrollmentRecord["totalDaysCompleted"] = 0 as CKRecordValue
             
             if let duration = challenge["duration"] as? Int {
-                let startOfToday = Calendar.current.startOfDay(for: Date())
-                // duration - 1 because today counts as day 1
-                if let endDate = Calendar.current.date(byAdding: .day, value: duration - 1, to: startOfToday) {
-                    enrollmentRecord["expectedEndDate"] = endDate as CKRecordValue
+                var calendar = Calendar.current
+                calendar.timeZone = TimeZone.current  // explicitly use device timezone
+                
+                let startOfToday = calendar.startOfDay(for: Date())
+                if let endDateStart = calendar.date(byAdding: .day, value: duration - 1, to: startOfToday) {
+                    let endOfLastDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: endDateStart)!
+                    enrollmentRecord["expectedEndDate"] = endOfLastDay as CKRecordValue
                 }
             }
             
@@ -1189,22 +1192,18 @@ extension CloudKitManager {
         
         publicDatabase.save(enrollment) { savedEnrollment, error in
             if let error = error {
-                print("❌ Error marking challenge complete: \(error.localizedDescription)")
                 completion(.failure(error))
                 return
             }
             
-            print("✅ Challenge marked as completed")
+            completion(.success(()))
             
-            // Post notification to refresh UI
-            DispatchQueue.main.async {
+            // Post AFTER completion so UI refreshes with updated data
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
             }
-            
-            completion(.success(()))
         }
     }
-}
 
 #if DEBUG
 extension CloudKitManager {

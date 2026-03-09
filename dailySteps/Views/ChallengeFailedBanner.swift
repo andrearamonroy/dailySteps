@@ -187,13 +187,28 @@ extension CloudKitManager {
         let currentStreak = enrollment["currentStreak"] as? Int ?? 0
         let startDate     = enrollment["startDate"] as? Date ?? Date()
 
-        // Days elapsed since challenge started
-        let daysSinceStart = Calendar.current.dateComponents(
-            [.day], from: startDate, to: Date()
+        let calendar = Calendar.current
+        let todayStart     = calendar.startOfDay(for: Date())
+        let startDayStart  = calendar.startOfDay(for: startDate)
+
+        // How many full days have passed since start (timezone-safe)
+        let daysSinceStart = calendar.dateComponents(
+            [.day], from: startDayStart, to: todayStart
         ).day ?? 0
 
-        let missedDay  = currentStreak == 0 && daysCompleted > 0
-        let finalDayFailed = daysSinceStart >= duration && daysCompleted < duration
+        let missedDay = currentStreak == 0 && daysCompleted > 0
+
+        // Only fail on final day if expectedEndDate has fully passed
+        // i.e. we are the day AFTER the last day
+        let finalDayFailed: Bool
+        if let expectedEndDate = enrollment["expectedEndDate"] as? Date {
+            let endDay  = calendar.startOfDay(for: expectedEndDate)
+            // today must be strictly AFTER the end date
+            finalDayFailed = todayStart > endDay && daysCompleted < duration
+        } else {
+            // fallback: use daysSinceStart strictly greater than duration
+            finalDayFailed = daysSinceStart > duration && daysCompleted < duration
+        }
 
         switch (missedDay, finalDayFailed) {
         case (true, true):  completion(.both)
@@ -202,7 +217,6 @@ extension CloudKitManager {
         default:            completion(nil)
         }
     }
-}
 
 // MARK: - How to use in StepView
 /*
