@@ -234,13 +234,8 @@ struct StepView: View {
             .refreshable {
                 loadActiveChallenge(forceRefresh: true)
                 mainViewModel.healthManager.refreshTodaySteps()
-                
-                //update progress after refresh
-//                mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
             }
         }
-        
-        
         
         .overlay(alignment: .top) {
             if showFailureBanner, let challenge = activeChallenge {
@@ -361,7 +356,7 @@ struct StepView: View {
     
             // Refresh steps first, THEN load challenge with fresh data
              mainViewModel.healthManager.refreshTodaySteps {
-                 loadActiveChallenge(forceRefresh: false)
+                 loadActiveChallenge(forceRefresh: true)
              }
         }
 
@@ -370,7 +365,7 @@ struct StepView: View {
             currentDate = Date()
             // Refresh steps first, THEN load challenge with fresh data
              mainViewModel.healthManager.refreshTodaySteps {
-                 loadActiveChallenge(forceRefresh: false)
+                 loadActiveChallenge(forceRefresh: true)
              }
         }
         
@@ -383,12 +378,15 @@ struct StepView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeEnded"))) { _ in
             // Refresh steps first, THEN load challenge with fresh data
              mainViewModel.healthManager.refreshTodaySteps {
-                 loadActiveChallenge(forceRefresh: false)
+                 loadActiveChallenge(forceRefresh: true)
              }
         }
         
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowFeedbackPrompt"))) { _ in
             triggerFeedbackPromptIfNeeded()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ChallengeProgressUpdated"))) { _ in
+            loadActiveChallenge(forceRefresh: true) // bypasses 5 min cache
         }
         .onChange(of: appState.dismissChallengeListView) { oldValue, newValue in
             mainViewModel.healthManager.refreshTodaySteps {
@@ -525,13 +523,23 @@ struct StepView: View {
     ///   - enrollment: <#enrollment description#>
     func checkIfChallengeJustCompleted(challenge: CKRecord, enrollment: CKRecord) {
         // Don't fire if already completed
-        if enrollment["completedAt"] as? Date != nil { return }
+       // if enrollment["isActive"] as? Bool == false { return }
+       // if enrollment["endReason"] as? String != nil { return }
 
+        
         let totalDays     = challenge["duration"] as? Int ?? 30
         let daysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
         let targetSteps   = challenge["targetSteps"] as? Int ?? 10000
         let todaySteps    = mainViewModel.healthManager.stepCount
-
+        
+        print("C checkIfChallengeJustCompleted")
+        print("C   totalDays: \(totalDays)")
+        print("C   daysCompleted: \(daysCompleted)")
+        print("C  targetSteps: \(targetSteps)")
+        print("C   todaySteps: \(todaySteps)")
+        print("C   isActive: \(enrollment["isActive"] as? Bool ?? true)")
+        print("C   endReason: \(enrollment["endReason"] as? String ?? "nil")")
+        
         // Safety check — don't complete before expectedEndDate
         if let expectedEndDate = enrollment["expectedEndDate"] as? Date {
             let calendar = Calendar.current

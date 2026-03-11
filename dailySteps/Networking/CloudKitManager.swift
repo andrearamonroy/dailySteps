@@ -1184,7 +1184,7 @@ extension CKRecord {
 
 extension CloudKitManager {
     // Add this to CloudKitManager.swift
-
+    
     func markChallengeCompleted(enrollment: CKRecord, completion: @escaping (Result<Void, Error>) -> Void) {
         enrollment["completedAt"] = Date() as CKRecordValue
         enrollment["isActive"] = false as CKRecordValue
@@ -1204,6 +1204,7 @@ extension CloudKitManager {
             }
         }
     }
+}
 
 #if DEBUG
 extension CloudKitManager {

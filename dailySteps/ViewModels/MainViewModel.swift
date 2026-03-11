@@ -163,11 +163,21 @@ CloudKitManager.shared.uploadAllIcons()
             case .success:
                 print("✅ Progress updated successfully")
                 
+                // Force refresh enrollment so checkIfChallengeJustCompleted
+                     // gets fresh totalDaysCompleted, not cached data
+                     DispatchQueue.main.async {
+                         NotificationCenter.default.post(
+                             name: NSNotification.Name("ChallengeProgressUpdated"),
+                             object: nil
+                         )
+                     }
+                
                 // Fetch updated enrollment to check status
                 self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
                     if case .success(let (challenge, enrollment)) = enrollmentResult {
                         let streak = enrollment["currentStreak"] as? Int ?? 0
-                        let isActive = (enrollment["isActive"] as? Int ?? 1) == 1
+                        // CORRECT
+                        let isActive = enrollment["isActive"] as? Bool ?? true
                         let duration = challenge["duration"] as? Int ?? 1
                         let totalDaysCompleted = enrollment["totalDaysCompleted"] as? Int ?? 0
                         
