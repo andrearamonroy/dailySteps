@@ -261,8 +261,11 @@ struct BadgesView: View {
                         .filter { $0.completedAt != nil }
                         .sorted { $0.completedAt! > $1.completedAt! }
                     print("✅ Loaded \(self.completedBadges.count) badges")
+               
+                    
                 case .failure(let error):
-                    print("❌ Error loading badges: \(error.localizedDescription)")
+                    print("❌ Badge load failed: \(error)")
+                    print("❌ Error type: \(type(of: error))")
                 }
             }
         }

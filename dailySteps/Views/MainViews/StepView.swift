@@ -326,29 +326,13 @@ struct StepView: View {
             }
         }
         
-        
         .onAppear {
-            
-            mainViewModel.healthManager.refreshTodaySteps {
-                
-                
-                checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
-                
-            }
-                // Only load challenge if cache expired or no data
-                if shouldRefreshChallenge || (activeChallenge == nil && enrollment == nil) {
-                    loadActiveChallenge(forceRefresh: false)
-                }
-                
-                
-                if appState.dismissChallengeListView == true {
-                    loadActiveChallenge(forceRefresh: true)
-                    //reset
-                    //appState.dismissChallengeListView = false
-                }
-                
-            
+            handleOnAppear()
         }
+        
+        
+        
+ 
         
         // Fires automatically at midnight
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
@@ -447,6 +431,26 @@ struct StepView: View {
         }
     }
 
+    private func handleOnAppear() {
+        mainViewModel.healthManager.refreshTodaySteps {
+            checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
+            mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+            
+            // Give CloudKit time to write, then fetch fresh data
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                loadActiveChallenge(forceRefresh: true)
+            }
+        }
+        
+        if appState.dismissChallengeListView == true {
+            mainViewModel.healthManager.refreshTodaySteps {
+                mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    loadActiveChallenge(forceRefresh: true)
+                }
+            }
+        }
+    }
     
     private func checkChallengeFailure(challenge: CKRecord, enrollment: CKRecord) {
         // Only show once per calendar day

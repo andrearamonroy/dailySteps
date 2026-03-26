@@ -62,6 +62,9 @@ struct dailyStepsApp: App {
                             .environmentObject(mainViewModel)
                             .environment(\.managedObjectContext, persistenceController.container.viewContext)
                             .environmentObject(appState)
+                            .onAppear {
+                                mainViewModel.appState = appState  
+                            }
                     } else {
                         WelcomeView(hasCompletedOnboarding: $hasCompletedOnboarding)
                     }

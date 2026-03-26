@@ -28,8 +28,9 @@ class MainViewModel : ObservableObject {
         }
     }
     
-    
-    //including the group so that the widget has access to the grace days 
+    //weak to avoid retain cycle
+    weak var appState: AppState?
+    //including the group so that the widget has access to the grace days
     @AppStorage(
         "graceDays",
         store: UserDefaults(suiteName: "group.com.andrearamonroy.dailySteps")
@@ -202,15 +203,27 @@ CloudKitManager.shared.uploadAllIcons()
                         
                         // Check if challenge just completed
                         if !isActive {
-                            print("🎉 Challenge is now complete - posting notification")
+                            print("🎉 Challenge complete - showing overlay")
                             DispatchQueue.main.async {
-                                NotificationCenter.default.post(name: NSNotification.Name("ChallengeEnded"), object: nil)
-                            }
-                            
-                            // Show feedback prompt after completing a full challenge
-                            if self.shouldShowFeedbackPrompt() {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                                    NotificationCenter.default.post(name: NSNotification.Name("ShowFeedbackPrompt"), object: nil)
+                                self.appState?.completedChallengeName     = challenge["name"] as? String ?? "Challenge"
+                                self.appState?.completedChallengeIconName = challenge.challengeIconName
+                                self.appState?.completedChallengeDays     = duration
+                                self.appState?.completedChallengeSteps    = challenge["targetSteps"] as? Int ?? 10000
+
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                                    withAnimation {
+                                        self.appState?.showChallengeCompletedOverlay = true
+                                    }
+                                }
+
+                                // Delay ChallengeEnded so the overlay appears before the card clears
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    NotificationCenter.default.post(
+                                        name: NSNotification.Name("ChallengeEnded"), object: nil
+                                    )
+                                    NotificationCenter.default.post(
+                                        name: NSNotification.Name("ChallengeCompleted"), object: nil
+                                    )
                                 }
                             }
                         }
