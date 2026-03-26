@@ -435,19 +435,11 @@ struct StepView: View {
         mainViewModel.healthManager.refreshTodaySteps {
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-            
-            // Give CloudKit time to write, then fetch fresh data
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                loadActiveChallenge(forceRefresh: true)
-            }
         }
         
         if appState.dismissChallengeListView == true {
             mainViewModel.healthManager.refreshTodaySteps {
                 mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    loadActiveChallenge(forceRefresh: true)
-                }
             }
         }
     }

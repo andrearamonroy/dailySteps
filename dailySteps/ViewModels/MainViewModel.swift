@@ -164,15 +164,6 @@ CloudKitManager.shared.uploadAllIcons()
             case .success:
                 print("✅ Progress updated successfully")
                 
-                // Force refresh enrollment so checkIfChallengeJustCompleted
-                     // gets fresh totalDaysCompleted, not cached data
-                     DispatchQueue.main.async {
-                         NotificationCenter.default.post(
-                             name: NSNotification.Name("ChallengeProgressUpdated"),
-                             object: nil
-                         )
-                     }
-                
                 // Fetch updated enrollment to check status
                 self.cloudKitManager.fetchActiveEnrollment { enrollmentResult in
                     if case .success(let (challenge, enrollment)) = enrollmentResult {
@@ -236,7 +227,18 @@ CloudKitManager.shared.uploadAllIcons()
                                 }
                             }
                         }
+                        
+                        
+                        // Force refresh enrollment so checkIfChallengeJustCompleted
+                        // gets fresh totalDaysCompleted, not cached data
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("ChallengeProgressUpdated"),
+                                object: nil
+                            )
+                        }
                     }
+                    
                 }
                 
             case .failure(let error):

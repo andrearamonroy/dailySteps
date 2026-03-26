@@ -270,8 +270,8 @@
             filePath = "dailySteps/Views/MainViews/StepView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "606"
-            endingLineNumber = "606"
+            startingLineNumber = "598"
+            endingLineNumber = "598"
             landmarkName = "loadActiveChallenge(forceRefresh:)"
             landmarkType = "7">
          </BreakpointContent>
