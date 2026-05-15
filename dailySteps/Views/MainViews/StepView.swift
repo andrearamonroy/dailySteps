@@ -21,6 +21,8 @@ struct StepView: View {
     @State private var audioPlayer: AVAudioPlayer?
     private let cacheExpirationInterval: TimeInterval = 300 // 5 minutes
     
+    @State private var isCalendarExpanded = false
+    
     var shouldRefreshChallenge: Bool {
         guard let lastFetch = lastFetchTime else { return true }
         return Date().timeIntervalSince(lastFetch) > cacheExpirationInterval
@@ -61,153 +63,336 @@ struct StepView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background color
                 themeManager.backgroundColor
                     .ignoresSafeArea()
-                
+
                 ScrollView {
-                    VStack(spacing: 20) {
-                        // Date Header
-                        Text(currentDate, format: .dateTime.weekday().day().month().year())
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.top)
-                        
-                        GreetingCardView()
-                        
-                        // Challenge Goal Banner (if active challenge exists)
-                        if let challenge = activeChallenge,
-                           let targetSteps = challengeTargetSteps,
-                           let challengeName = challenge["name"] as? String {
-                            ChallengeGoalBanner(
-                                challengeName: challengeName,
-                                targetSteps: targetSteps,
-                                currentSteps: mainViewModel.healthManager.stepCount, challengeID: challenge["challengeID"] as? String ?? "" )
-                        }
-                        
-                        // Today's Steps with Dual Goals
-                        VStack(spacing: 16) {
-                            // Main step count
-                            Text("\(mainViewModel.healthManager.stepCount)")
-                                .font(.system(size: 48, weight: .bold))
-                            
-                            Text("steps today")
-                                .font(.headline)
-                                .foregroundColor(.secondary)
-                            
-                            Divider()
-                                .padding(.horizontal, 40)
-                            
-                            // Goals section
-                            if let targetSteps = challengeTargetSteps {
-                                // Show both goals side by side
-                                HStack(spacing: 0) {
-                                    // Personal Goal
-                                    GoalProgressView(
-                                        title: "Personal Goal",
-                                        goalSteps: Int(mainViewModel.stepGoal),
-                                        currentSteps: mainViewModel.healthManager.stepCount,
-                                        color: .green,
-                                        isChallenge: false
-                                    )
-                                    
-                                    Divider()
-                                        .frame(height: 60)
-                                    
-                                    // Challenge Goal
-                                    GoalProgressView(
-                                        title: "Challenge Goal",
-                                        goalSteps: targetSteps,
-                                        currentSteps: mainViewModel.healthManager.stepCount,
-                                        color: .blue,
-                                        isChallenge: true
-                                    )
+                    VStack(spacing: 16) {
+
+                        // MARK: — Card 1: Filling star floats above card
+                        VStack(spacing: 0) {
+                            // Filling star
+                            ZStack {
+                                // Empty star (gray background)
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 130))
+                                    .foregroundStyle(Color.gray.opacity(0.15))
+
+                                // Filled star — clipped from bottom based on progress
+                                let progress = min(Double(mainViewModel.healthManager.stepCount) / Double(mainViewModel.stepGoal), 1.0)
+                                GeometryReader { geo in
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 130))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color(red: 0.75, green: 0.5, blue: 1.0), Color(red: 1.0, green: 0.45, blue: 0.7)],
+                                                startPoint: .bottom,
+                                                endPoint: .top
+                                            )
+                                        )
+                                        .frame(width: geo.size.width, height: geo.size.height)
+                                        // Clip rectangle grows from bottom as progress increases
+                                        .mask(
+                                            VStack(spacing: 0) {
+                                                Spacer()
+                                                Rectangle()
+                                                    .frame(height: geo.size.height * progress)
+                                            }
+                                        )
                                 }
-                            } else {
-                                // Only personal goal (no active challenge)
-                                VStack(spacing: 16) {
-                                    Text("Personal Goal")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text("\(Int(mainViewModel.stepGoal))")
-                                        .font(.title2)
-                                        .fontWeight(.bold)
-                                    
-                                    if mainViewModel.healthManager.stepCount >= mainViewModel.stepGoal {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .foregroundColor(.green)
-                                            Text("Goal Reached")
-                                                .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.green)
-                                        }
-                                    } else {
-                                        Text("\(Int(mainViewModel.stepGoal) - mainViewModel.healthManager.stepCount) steps to go")
-                                            .font(.subheadline)
-                                            .foregroundColor(.orange)
+                                .frame(width: 130, height: 130)
+
+                                // Shadow ring behind star
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 130))
+                                    .foregroundStyle(Color(red: 0.75, green: 0.5, blue: 1.0).opacity(0.15))
+                                    .blur(radius: 12)
+                                    .offset(y: 6)
+                                    .zIndex(-1)
+
+                                // Step count text on top
+                                Text("\(formatWithComma(mainViewModel.healthManager.stepCount))")
+                                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                                    .foregroundColor(progress > 0.45 ? .white : Color(red: 0.25, green: 0.15, blue: 0.55))
+                                    .minimumScaleFactor(0.3)
+                                    .lineLimit(1)
+                                    .frame(width: 90)
+                            }
+                            .frame(width: 130, height: 130)
+                            .zIndex(1)
+
+                            // Card
+                            VStack(spacing: 6) {
+                                Spacer().frame(height: 50)
+
+                                Text("STEPS TODAY")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [Color(red: 0.75, green: 0.5, blue: 1.0), Color(red: 1.0, green: 0.45, blue: 0.7)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .kerning(1.2)
+
+                                let remaining = max(Int(mainViewModel.stepGoal) - mainViewModel.healthManager.stepCount, 0)
+                                if remaining > 0 {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "bolt.fill")
+                                            .font(.system(size: 11))
+                                        Text("\(formatWithComma(remaining)) to go")
+                                            .font(.system(size: 13, weight: .semibold))
                                     }
-                                    
-                                    Divider()
-                                        .padding(.horizontal, 40)
-                                        .padding(.vertical, 4)
-                                    
-                                    VStack(spacing: 4) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "flame.fill")
-                                                .font(.system(size: 16))
-                                                .foregroundStyle(
-                                                    LinearGradient(
-                                                        colors: [.orange, .red],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                )
-                                            
-                                            StreakNumberView()
-                                                .environment(\.managedObjectContext, viewContext)
-                                                .environmentObject(mainViewModel)
-                                        }
-                                        
-                                        Text("day streak")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                    .foregroundColor(Color(red: 1.0, green: 0.5, blue: 0.2))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color(red: 1.0, green: 0.5, blue: 0.2).opacity(0.12))
+                                    .cornerRadius(20)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 11))
+                                        Text("Goal reached!")
+                                            .font(.system(size: 13, weight: .semibold))
                                     }
+                                    .foregroundColor(.green)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.green.opacity(0.12))
+                                    .cornerRadius(20)
+                                }
+
+                                Spacer().frame(height: 16)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .background(Color(.systemBackground))
+                            .cornerRadius(20)
+                            .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
+                            .padding(.horizontal)
+                            .offset(y: -62)
+                        }
+                        .padding(.bottom, -62)
+                        .padding(.horizontal)
+
+                        // MARK: — Card 2: Weekly Steps
+                        WeeklyStepsView()
+
+                        // MARK: — Card 3: Goals + Streaks compact bar
+                        HStack(spacing: 0) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(Color(red: 0.75, green: 0.5, blue: 1.0))
+                                        .frame(width: 7, height: 7)
+                                    Text("PERSONAL")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(Color(red: 0.75, green: 0.5, blue: 1.0))
+                                        .kerning(0.8)
+                                }
+                                Text(formatWithComma(Int(mainViewModel.stepGoal)))
+                                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                                    .foregroundColor(.primary)
+
+                                let personalDone = mainViewModel.healthManager.stepCount >= Int(mainViewModel.stepGoal)
+                                HStack(spacing: 3) {
+                                    Image(systemName: personalDone ? "checkmark.circle.fill" : "bolt.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(personalDone ? .green : Color(red: 1.0, green: 0.5, blue: 0.2))
+                                    Text(personalDone ? "reached!" : "in progress")
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(personalDone ? .green : Color(red: 1.0, green: 0.5, blue: 0.2))
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.leading, 16)
+
+                            StreakNumberView()
+                                .environment(\.managedObjectContext, viewContext)
+                                .environmentObject(mainViewModel)
+                                .padding(.trailing, 4)
+
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(LinearGradient(colors: [.orange, .red], startPoint: .top, endPoint: .bottom))
+                                .padding(.trailing, 12)
+
+                            Divider()
+                                .frame(height: 50)
+
+                            if let challenge = activeChallenge,
+                               let targetSteps = challengeTargetSteps {
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "trophy.fill")
+                                            .font(.system(size: 7))
+                                            .foregroundColor(Color(red: 0.3, green: 0.7, blue: 0.4))
+                                        Text("CHALLENGE")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(Color(red: 0.3, green: 0.7, blue: 0.4))
+                                            .kerning(0.8)
+                                    }
+                                    Text(formatWithComma(targetSteps))
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                                        .foregroundColor(.primary)
+
+                                    let challengeDone = mainViewModel.healthManager.stepCount >= targetSteps
+                                    HStack(spacing: 3) {
+                                        Image(systemName: challengeDone ? "checkmark.circle.fill" : "bolt.fill")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(challengeDone ? .green : Color(red: 1.0, green: 0.5, blue: 0.2))
+                                        Text(challengeDone ? "reached!" : "in progress")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(challengeDone ? .green : Color(red: 1.0, green: 0.5, blue: 0.2))
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, 12)
+
+                                Text("⭐️")
+                                    .font(.system(size: 22))
+                                    .padding(.trailing, 4)
+
+                                if let enrollmentRecord = enrollment,
+                                   let challengeStreak = enrollmentRecord["currentStreak"] as? Int {
+                                    Text("\(challengeStreak)")
+                                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                                        .foregroundStyle(LinearGradient(colors: [.orange, .red], startPoint: .leading, endPoint: .trailing))
+                                        .padding(.trailing, 4)
+                                }
+
+                                Image(systemName: "flame.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundStyle(LinearGradient(colors: [.orange, .red], startPoint: .top, endPoint: .bottom))
+                                    .padding(.trailing, 12)
+
+                            } else {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "trophy.fill")
+                                            .font(.system(size: 7))
+                                            .foregroundColor(.gray)
+                                        Text("CHALLENGE")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.gray)
+                                            .kerning(0.8)
+                                    }
+                                    Text("None")
+                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                        .foregroundColor(.secondary)
+                                    Text("Join one below")
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, 12)
+                                .padding(.trailing, 16)
+                            }
                         }
-                        .padding()
+                        .padding(.vertical, 14)
                         .background(Color(.systemBackground))
                         .cornerRadius(16)
                         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color(red: 0.75, green: 0.5, blue: 1.0).opacity(0.3), Color(red: 1.0, green: 0.45, blue: 0.7).opacity(0.3)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
                         .padding(.horizontal)
-                        
-                        // Weekly Steps
-                        WeeklyStepsView()
-                        
-                        // Active Challenge Section (moved to bottom)
-                        // Active Challenge Section OR Enrollment Prompt
+
+                        // MARK: — Card 4: Inline Calendar (collapsible)
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Header row — always visible
+                            Button(action: {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    isCalendarExpanded.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 10) {
+                                    // Calendar icon
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [Color(red: 0.75, green: 0.5, blue: 1.0), Color(red: 1.0, green: 0.45, blue: 0.7)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                            .frame(width: 32, height: 32)
+                                        Image(systemName: "calendar")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
+
+                                    Text(Date().formatted(.dateTime.month(.wide).year()))
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+
+                                    // Chevron
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                        .rotationEffect(.degrees(isCalendarExpanded ? 180 : 0))
+                                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isCalendarExpanded)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+
+                            // Expandable content
+                            if isCalendarExpanded {
+                                Divider()
+                                    .padding(.horizontal)
+
+                                VStack(alignment: .leading, spacing: 12) {
+                                    CalendarHeaderView()
+
+                                    TimelineView(.everyMinute) { context in
+                                        ColorCodedCalendarGrid(
+                                            days: Array(days),
+                                            today: context.date
+                                        )
+                                    }
+                                }
+                                .padding()
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
+                        .background(Color(.systemBackground))
+                        .cornerRadius(20)
+                        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
+                        .padding(.horizontal)
+                        .clipped()
+
+                        // MARK: — Active Challenge or Enroll Prompt
                         if isLoadingChallenge {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Active Challenge")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .padding(.horizontal)
-                                
                                 ProgressView()
                                     .frame(maxWidth: .infinity)
                                     .padding()
                             }
                             .padding(.bottom)
                         } else if let challenge = activeChallenge, let enrollmentRecord = enrollment {
-                            // Has active challenge - show challenge card
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Active Challenge")
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .padding(.horizontal)
-                                
                                 ActiveChallengeCardView(
                                     challenge: challenge,
                                     enrollment: enrollmentRecord,
@@ -216,14 +401,15 @@ struct StepView: View {
                             }
                             .padding(.bottom)
                         } else {
-                            // No active challenge - show enrollment prompt
                             EnrollmentPromptView()
                                 .padding(.bottom)
                         }
                     }
+                    .padding(.top)
                 }
             }
-            .toolbar {
+            .toolbar {   // ← everything above was changed
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: StepGoalSettingsView()
                         .environmentObject(mainViewModel)) {
@@ -431,7 +617,28 @@ struct StepView: View {
         }
     }
 
+    
+    private func formatWithComma(_ steps: Int) -> String {
+        if steps >= 1000 {
+            return "\(steps / 1000),\(String(format: "%03d", steps % 1000))"
+        }
+        return "\(steps)"
+    }
+
+    private func formatCompact(_ steps: Int) -> String {
+        if steps >= 1000 {
+            let k = steps / 1000
+            let remainder = steps % 1000
+            return remainder == 0 ? "\(k)k" : "\(k).\(remainder / 100)k"
+        }
+        return "\(steps)"
+    }
+    
+    
     private func handleOnAppear() {
+        
+        loadActiveChallenge(forceRefresh: true)
+        
         mainViewModel.healthManager.refreshTodaySteps {
             checkGoalCelebration(steps: mainViewModel.healthManager.stepCount)
             mainViewModel.checkAndUpdateProgress(currentSteps: mainViewModel.healthManager.stepCount)
@@ -557,6 +764,9 @@ struct StepView: View {
                     self.appState.completedChallengeIconName = challenge.challengeIconName
                     self.appState.completedChallengeDays     = totalDays
                     self.appState.completedChallengeSteps    = targetSteps
+                    
+                    // POST NOTIFICATION HERE so BadgesView gets fresh data
+                        NotificationCenter.default.post(name: NSNotification.Name("ChallengeCompleted"), object: nil)
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                         withAnimation {
