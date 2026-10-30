@@ -36,6 +36,14 @@ struct HomeView: View {
                 Label("Challenges", systemImage: "trophy")
             }
             .tag(2)
+            NavigationStack {
+                WorkOutView()
+            }
+            .tabItem {
+                Label("Workout", systemImage: "dumbbell")
+            }
+            .tag(3)
+            
             
         }
         .onAppear {

@@ -98,6 +98,20 @@
 			);
 			target = 65A2A28F2DB5BCA20007ACD4 /* dailySteps */;
 		};
+		657E99803094EF5E00D8391B /* Exceptions for "dailySteps" folder in "dailyStepsTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Views/WorkoutTracker.swift,
+			);
+			target = 65A2A2A42DB5BCA40007ACD4 /* dailyStepsTests */;
+		};
+		657E99813094EF5E00D8391B /* Exceptions for "dailySteps" folder in "dailyStepsUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Views/WorkoutTracker.swift,
+			);
+			target = 65A2A2AE2DB5BCA40007ACD4 /* dailyStepsUITests */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -113,6 +127,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				6542D5A82E23F42500970000 /* Exceptions for "dailySteps" folder in "dailySteps" target */,
+				657E99803094EF5E00D8391B /* Exceptions for "dailySteps" folder in "dailyStepsTests" target */,
+				657E99813094EF5E00D8391B /* Exceptions for "dailySteps" folder in "dailyStepsUITests" target */,
 				0D4AA5C52F05B7DB00DF5F83 /* Exceptions for "dailySteps" folder in "dailyStepsWidgetExtension" target */,
 			);
 			path = dailySteps;
